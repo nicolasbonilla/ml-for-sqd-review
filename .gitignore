@@ -1,0 +1,14 @@
+# Python / Jupyter scratch only — the generated figures and outputs ARE committed
+# (so a reviewer can see every graph and number without running anything)
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+# LaTeX build aux only
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+.DS_Store
+Thumbs.db

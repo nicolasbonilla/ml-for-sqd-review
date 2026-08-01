@@ -1,0 +1,19 @@
+# Core (calculations, notebook, data figures)
+numpy>=1.24
+scipy>=1.10
+pyscf>=2.3          # exact FCI, selected-CI, integrals  (Linux/macOS; on Windows use the Docker image)
+torch>=2.0         # GFlowNet proposer (CPU is sufficient)
+matplotlib>=3.7
+
+# Backend-calibrated local noise models (no hardware / no account needed)
+qiskit>=1.0
+qiskit-ibm-runtime>=0.20   # provides fake_provider.FakeTorino (Heron r1 calibration)
+
+# Notebook execution
+jupyter
+nbformat
+nbconvert
+
+# Optional, only for specific figures:
+#   figures/render_orb.py   -> PyMOL (ray-traced molecular orbitals; see docker/Dockerfile.viz)
+#   figures/render_nc.py    -> a Chromium/rsvg renderer for the SVG landscape panel (Fig. 8)

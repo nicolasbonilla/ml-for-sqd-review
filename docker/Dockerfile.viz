@@ -1,0 +1,3 @@
+FROM sqd-nb:latest
+RUN apt-get update && apt-get install -y --no-install-recommends pymol \
+    && rm -rf /var/lib/apt/lists/*
