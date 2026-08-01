@@ -9,6 +9,17 @@ Every quantitative claim, every figure, and every table in the paper is regenera
 
 ---
 
+### ▶ Run or read the calculations in one click
+
+[![Open the notebook in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nicolasbonilla/ml-for-sqd-review/blob/main/notebook/GFlowNet_SQD_calculations.ipynb)
+
+- **Read it here, no install:** GitHub renders [`notebook/GFlowNet_SQD_calculations.ipynb`](notebook/GFlowNet_SQD_calculations.ipynb) inline — every cell and every embedded figure is visible in the browser.
+- **Run it in the browser:** click the Colab badge above (or [this link](https://colab.research.google.com/github/nicolasbonilla/ml-for-sqd-review/blob/main/notebook/GFlowNet_SQD_calculations.ipynb)) and *Runtime → Run all*.
+- **Download the whole repository:** `git clone https://github.com/nicolasbonilla/ml-for-sqd-review.git` — or **Code ▸ Download ZIP** on GitHub. Everything (notebook, calculation scripts, figure scripts, the generated figures in `figures_output/`, and the Docker environments) comes in a single download.
+- **See the figures without running anything:** [`figures_output/`](figures_output/) holds all nine paper figures as PDF **and** PNG (the PNGs preview inline on GitHub).
+
+---
+
 ## Quick start
 
 **Option A — one notebook, in the browser (no install).** Open `notebook/GFlowNet_SQD_calculations.ipynb` in Google Colab and run all cells. It reproduces, in order: the exact FCI reference, the coupon-collector statistics, S-CORE recovery under noise, the Epstein–Nesbet reward and the GFlowNet compactness study, the noise crossover, and the decisive heat-bath-CI test.
