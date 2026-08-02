@@ -49,8 +49,9 @@ docker run --rm -v "$PWD:/w" -w /w sqd-nb python calculations/hci_baseline.py
 | GFlowNet compactness vs classical greedy & oracle (β=0.5 tempered, 5-seed) | `calculations/gflownet_temper.py`, notebook cell 20 | GFlowNet 192±19 vs greedy **41.3** vs oracle 17.0 mHa at D=120 — the cheap-reward GFlowNet does **not** beat the classical greedy selector |
 | Order parameter: cheap Epstein–Nesbet reward vs exact \|c\|² (Spearman) | `calculations/compute_physics.py` | ρ ≈ **0.64** at R=2.0 Å; falls monotonically 0.72→0.60 as N₂ stretches into the multireference regime |
 | Multireference character: FCI natural-orbital occupations vs geometry | `calculations/compute_physics.py` | HF weight 0.93→0.12; frontier NOONs 1.95/0.06→1.08/0.92 (R=1.1→2.5 Å) |
-| Noise crossover — **multireference** N₂ | `calculations/noise_sweep.py`, `calculations/gflownet_realnoise.py` | 5-seed gaps [−11.7, +0.3, +9.7, +9.8] mHa; crossover at 2× (paired t₄=8.7, p≈0.001) |
-| Noise crossover — **single-reference** H₂O (control) | `calculations/h2o_crossover.py` | 5-seed gaps [−0.1, −1.3, −2.9, +1.4] mHa; **no** crossover (classical wins/ties throughout) |
+| Noise crossover, single N₂ geometry | `calculations/noise_sweep.py`, `calculations/gflownet_realnoise.py` | 5-seed gaps [−11.7, +0.3, +9.7, +9.8] mHa (sign-flip floor p=0.0625 at n=5; t is a reproducibility diagnostic) |
+| **Controlled test** — crossover vs N₂ geometry (only multireference varies) | `calculations/n2_ladder_crossover.py` | at 3× noise the crossover is **universal** (gap +10…+21 mHa at every R, incl. near-single-reference R=1.1) → driven by shot-starvation, **not** multireference; **refutes** the multireference-specific reading |
+| Cross-molecule contrast (confounded) — H₂O vs N₂ | `calculations/h2o_crossover.py` | H₂O 5-seed gaps [−0.1, −1.3, −2.9, +1.4] mHa; the apparent difference is a subspace-coverage confound (24% vs 15% at D=120), not chemistry |
 | Backend-calibrated noise (asymmetric readout, FakeTorino / Heron r1) | `calculations/validate_realnoise.py` | — |
 
 ## Where every figure comes from
@@ -73,7 +74,7 @@ TikZ reads.
 | Fig. 7 — decisive heat-bath-CI test | native TikZ + `calculations/hci_baseline.py` |
 | Fig. 8 — advantage landscape (§5–§7) | native TikZ (`main.tex`) |
 | **Fig. 9 — order parameter, measured** (Spearman ↓ vs multireference ↑) | native TikZ + `calculations/compute_physics.py` (`results/orderparam.dat`) |
-| **Fig. 10 — noise crossover, N₂ vs H₂O** (two-system controlled test) | native TikZ + `calculations/noise_sweep.py` + `calculations/h2o_crossover.py` |
+| **Fig. 10 — controlled noise-crossover test** (crossover vs N₂ geometry; refutes multireference-specificity) | native TikZ (`results/ladder.dat`) + `calculations/n2_ladder_crossover.py` |
 
 ---
 

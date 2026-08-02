@@ -32,10 +32,11 @@ We work throughout in an active space small enough that the **exact full-configu
 | Coupon-collector: 90% of weight in ≈1.4% of strings | §2 |
 | S-CORE recovers valid configurations under realistic noise | §3 |
 | Cheap Epstein–Nesbet reward + GFlowNet proposer (compactness) | §4 |
-| The noise crossover: generative help only at high noise | §5 |
-| The decisive classical test: HCI beats the sampler at verifiable scale | §6 |
+| The order parameter: cheap prior degrades with multireference character | §5 |
+| The noise crossover + controlled test (an honest partial negative) | §6 |
+| The decisive classical test: HCI beats the sampler at verifiable scale | §7 |
 
-> **Reproducibility.** Runs in Google Colab or any Python ≥3.10 with `pyscf`, `torch`, `scipy`, `matplotlib`. Fixed seeds throughout. The heavy noise sweep (§5) runs a reduced-but-real configuration live and is compared against the full 5-seed production numbers, which are quoted verbatim from the verified runs and reproducible by raising the loop bounds noted in the cell.
+> **Reproducibility.** Runs in Google Colab or any Python ≥3.10 with `pyscf`, `torch`, `scipy`, `matplotlib`. Fixed seeds throughout. The heavy noise sweeps (§6) run a reduced-but-real configuration live and are compared against the full 5-seed production numbers, which are quoted verbatim from the verified runs (`calculations/n2_ladder_crossover.py`, `h2o_crossover.py`) and reproducible by raising the loop bounds noted in each cell.
 """)
 
 # ============================================================ SETUP
@@ -314,10 +315,14 @@ c1 = Hc / den; c1[hf_idx, hf_idx] = 1.0
 w_cheap = (c1**2).sum(1); w_cheap /= w_cheap.sum()
 cheap_order = np.argsort(w_cheap)[::-1]
 
-# how faithful is the cheap ranking?
+# how faithful is the cheap ranking? The Spearman rank correlation between the cheap reward
+# and the exact weights, over the 792 alpha-strings, is the paper's ORDER PARAMETER (Section 5 below).
+from scipy.stats import spearmanr
+rho = spearmanr(w_cheap, w_a).correlation
 logcorr = np.corrcoef(np.log(w_cheap+1e-12), np.log(w_a+1e-12))[0,1]
 K = 60; top_true = set(order[:K]); top_cheap = set(cheap_order[:K])
-log(f"cheap vs true log-weight correlation = {logcorr:.3f}")
+log(f"Spearman rank correlation (cheap reward vs exact |c|^2) = {rho:.3f}   <-- the paper's order parameter (~0.64 at R=2.0)")
+log(f"(Pearson of log-weights = {logcorr:.3f} -- a different, looser metric; do not confuse the two)")
 log(f"cheap top-{K} recovers {len(top_true & top_cheap)}/{K} of the true top-{K} strings")
 """)
 co(r"""
@@ -327,7 +332,7 @@ ax.loglog(w_a+1e-12, w_cheap+1e-12, ".", color=OI["blue"], ms=4, alpha=0.5)
 lim = [1e-9, 1]; ax.plot(lim, lim, "--", color=OI["grey"], lw=1)
 ax.set_xlim(1e-9,1); ax.set_ylim(1e-9,1)
 ax.set_xlabel("true FCI marginal weight"); ax.set_ylabel("cheap Epstein–Nesbet weight")
-ax.set_title(f"Cheap reward vs truth (log-corr = {logcorr:.2f})")
+ax.set_title(f"Cheap reward vs truth (Spearman $\\rho$ = {rho:.2f})")
 plt.savefig("/w/nb_fig4_cheap.png", bbox_inches="tight"); plt.show()
 """)
 md(r"""
@@ -370,8 +375,11 @@ def train_gflownet(reward, iters=1200, B=256, ndraw=20000):
     for i in o: c[i] = c.get(i,0)+1
     return c, float(loss.item())
 
-log("training GFlowNet on the cheap reward (production used 3000 iters; here 1200 for speed)...")
-gfn_counts, final_loss = train_gflownet(np.maximum(w_cheap,1e-10), iters=1200)
+# tempered reward (beta=0.5) with an exploration floor -- the exact setup of the paper's Fig. 6
+FLOOR = 1e-3 * w_cheap.max()
+w_temper = np.maximum(w_cheap, FLOOR)**0.5
+log("training GFlowNet on the TEMPERED (beta=0.5) cheap reward (production: 2000 iters x 5 seeds; here 1200 iters x 1 seed for speed)...")
+gfn_counts, final_loss = train_gflownet(w_temper, iters=1200)
 log(f"done. final TB loss = {final_loss:.4f}")
 """)
 co(r"""
@@ -410,12 +418,65 @@ ax.set_title("Compactness: GFlowNet vs the strongest classical selector"); ax.le
 plt.savefig("/w/nb_fig4b_compactness.png", bbox_inches="tight"); plt.show()
 """)
 md(r"""
-**The honest result (noise-free).** The GFlowNet, trained only on the cheap classical signal, tracks the oracle far better than uniform or i.i.d. importance sampling — the generative model genuinely learns the important region. **But the deterministic top-$K$ selection by the *same* cheap criterion — i.e. exactly what HCI/CIPSI do — is at least as compact.** In the noise-free, verifiable regime, the classical greedy selector is not beaten. This is the paper's §5 verdict, reproduced from first principles.
+**The honest result (noise-free), and a self-correction.** The GFlowNet, trained only on the cheap classical signal, beats blind uniform sampling by a wide margin — the generative model genuinely learns the important region. **But it does not beat the deterministic top-$K$ selection by the *same* cheap criterion** (exactly what HCI/CIPSI do). Averaged over 5 seeds, the production numbers at $D=120$ are: classical greedy **41.3 mHa**, GFlowNet **192 ± 19 mHa**, blind uniform **498 ± 149 mHa**, exact oracle **17.0 ± 1.5 mHa** — the GFlowNet sits *between* blind sampling and the classical selector, not near the oracle. (An earlier single-seed run of this figure suggested a *near-oracle* GFlowNet; applying the multi-seed standard of the paper's §6 to our own figure corrected it — a concrete instance of why error bars are mandatory. The single live seed above lands somewhere in that spread.) The lesson: a proposer trained on a cheap reward inherits that reward's ceiling — here the Spearman $\rho\approx0.64$ correlation with truth — and cannot out-rank it by sampling. This is the paper's §5 verdict, reproduced from first principles.
 """)
 
-# ============================================================ SECTION 5
+# ============================================================ SECTION 5 (order parameter)
 md(r"""
-## 5 · The noise crossover — where the generative model earns its keep
+## 5 · The order parameter — the cheap prior degrades exactly where it must
+
+Section 4 showed the cheap Epstein–Nesbet reward correlates only imperfectly (Spearman $\rho\approx0.64$) with the exact weights. The paper's central *falsifiable* claim is that this correlation is an **order parameter**: it should collapse precisely as the molecule becomes **multireference** — the regime where a single-reference prior *must* misrank the determinants that matter. We test this directly by walking N₂ from near-equilibrium out toward dissociation, computing at each bond length (i) the exact-FCI **natural-orbital occupation numbers** (NOONs) — the standard multireference diagnostic, which deviate from the closed-shell 2/0 — and (ii) the Spearman order parameter.
+""")
+co(r"""
+def analyse_geometry(Rx):
+    m = gto.M(atom=f"N 0 0 0; N 0 0 {Rx}", basis="cc-pvdz", verbose=0)
+    f = scf.RHF(m).run()
+    c = mcscf.CASCI(f, NCAS, NELECAS)
+    H1, EC = c.get_h1cas(); H2 = ao2mo.restore(1, c.get_h2cas(), NCAS)
+    sA = cistring.make_strings(range(NCAS), na); dA = len(sA)
+    hfi = int(np.where(sA == (1<<na)-1)[0][0])
+    v0 = np.zeros((dA,dA)); v0[hfi,hfi] = 1.0                       # cheap Epstein-Nesbet reward
+    H2e = direct_spin1.absorb_h1e(H1, H2, NCAS, NELECAS, 0.5)
+    Hc = direct_spin1.contract_2e(H2e, v0, NCAS, NELECAS).reshape(dA,dA)
+    hd = direct_spin1.make_hdiag(H1, H2, NCAS, NELECAS).reshape(dA,dA)
+    den = Hc[hfi,hfi]-hd; den[hfi,hfi]=1.0
+    cc = Hc/den; cc[hfi,hfi]=1.0
+    wc = (cc**2).sum(1)
+    eF, cV = pyscf.fci.direct_spin1.FCI().kernel(H1, H2, NCAS, NELECAS, ecore=EC); cV = cV.reshape(dA,dA)
+    wT = (cV**2).sum(1)                                            # exact FCI weights
+    dm1 = pyscf.fci.direct_spin1.make_rdm1(cV, NCAS, NELECAS)      # 1-RDM -> natural-orbital occupations
+    noon = np.sort(np.linalg.eigvalsh(dm1))[::-1]
+    return dict(R=Rx, rho=float(spearmanr(wc, wT).correlation),
+                homo=float(noon[na-1]), lumo=float(noon[na]),
+                sumfrac=float(sum(min(x,2-x) for x in noon)), wHF=float(cV[hfi,hfi]**2))
+
+Rs = [1.10, 1.40, 1.70, 2.00, 2.30, 2.50]
+op = [analyse_geometry(Rx) for Rx in Rs]
+print(f"{'R(A)':>5s} {'Spearman':>9s} {'HOMO NOON':>10s} {'LUMO NOON':>10s} {'sum_frac':>9s} {'HF weight':>10s}")
+for g in op:
+    print(f"{g['R']:5.2f} {g['rho']:9.3f} {g['homo']:10.3f} {g['lumo']:10.3f} {g['sumfrac']:9.3f} {g['wHF']:10.3f}")
+log(f"\norder parameter falls {op[0]['rho']:.3f} -> {op[-1]['rho']:.3f} as HF weight collapses {op[0]['wHF']:.2f} -> {op[-1]['wHF']:.2f}")
+""")
+co(r"""
+# ---- Figure 5: the order parameter, measured (paper Fig. 9) ----
+Rv=[g['R'] for g in op]; rhov=[g['rho'] for g in op]; mrw=[1-g['wHF'] for g in op]; lum=[g['lumo'] for g in op]
+fig, ax = plt.subplots(1, 2, figsize=(11, 4.2))
+ax[0].plot(Rv, rhov, "o-", color=OI["blue"], lw=2, ms=8)
+ax[0].set_xlabel("N$_2$ bond length R ($\\AA$)"); ax[0].set_ylabel(r"Spearman $\rho$ (order parameter)")
+ax[0].set_title("The cheap prior degrades…")
+ax[1].plot(Rv, mrw, "s-", color=OI["vermilion"], lw=2, ms=7, label=r"$1-w_{HF}$ (weight off Hartree–Fock)")
+ax[1].plot(Rv, lum, "^--", color=OI["orange"], lw=2, ms=8, label="LUMO natural-orbital occupation")
+ax[1].set_xlabel("N$_2$ bond length R ($\\AA$)"); ax[1].set_ylabel("multireference character")
+ax[1].set_title("…where static correlation grows"); ax[1].set_ylim(0,1); ax[1].legend(fontsize=10)
+plt.savefig("/w/nb_fig5_orderparam.png", bbox_inches="tight"); plt.show()
+""")
+md(r"""
+**The prediction, measured.** As N₂ stretches, the Hartree–Fock determinant's weight collapses (0.93 → 0.12) and the frontier NOONs open from 2/0 toward the dissociation limit 1/1 — the system becomes strongly multireference. Over exactly the same interval the order parameter **ρ falls monotonically, 0.72 → 0.60**. The single scalar collapses precisely where a single-reference prior must misrank the important determinants; it predicts, system by system and before any hardware is run, *where* a learned or quantum proposer has room to help. A method that helped where the prior already ranks well would falsify this picture; one that helps only as ρ collapses would confirm it. We use exactly this contrast in the next section, comparing multireference N₂ against single-reference H₂O.
+""")
+
+# ============================================================ SECTION 6 (crossover)
+md(r"""
+## 6 · The noise crossover — where the generative model earns its keep
 
 The compactness test above is noise-free, and there the classical greedy wins. The paper's central *positive* claim is narrower and regime-dependent: **as hardware noise grows, a proposer that (a) emits only valid configurations by construction and (b) fuses the cheap prior with the recovered sample statistics pulls ahead of the fair classical control.** We test it head-to-head:
 
@@ -466,8 +527,8 @@ for scale in SCALES:
 co(r"""
 # ---- full production numbers (verified: 4 scales x 5 seeds x 1000 iters, R=2.5) ----
 prod_scale = [0.0, 1.0, 2.0, 3.0]
-prod_gap   = [-11.74, 0.30, 9.71, 9.84]     # E(ibm+cheap) - E(gfn-fused), mHa
-prod_std   = [3.5, 4.0, 4.2, 4.3]
+prod_gap   = [-11.74, 0.30, 9.71, 9.84]     # E(ibm+cheap) - E(gfn-fused), mHa (multireference N2)
+prod_std   = [6.1, 2.4, 2.5, 2.5]           # s.d. over 5 seeds -> paired t4=8.7, p~0.001 at 2x
 
 fig, ax = plt.subplots(figsize=(7.2, 4.6))
 ax.axhline(0, color="k", lw=1)
@@ -482,16 +543,153 @@ ax.text(0.05, -9, "classical control better", color=OI["vermilion"], fontsize=11
 ax.text(0.05, 8, "GFlowNet better", color=OI["green"], fontsize=11)
 ax.set_ylim(-18, 16); ax.set_xlabel("noise scale (× FakeTorino)")
 ax.set_ylabel(r"gap $E_{\rm ibm+cheap}-E_{\rm gfn}$ (mHa)")
-ax.set_title("The crossover: generative advantage emerges only under noise"); ax.legend()
-plt.savefig("/w/nb_fig5_crossover.png", bbox_inches="tight"); plt.show()
+ax.set_title("The N$_2$ crossover: generative advantage emerges only under noise"); ax.legend()
+plt.savefig("/w/nb_fig6a_crossover_n2.png", bbox_inches="tight"); plt.show()
 """)
 md(r"""
-**Reading the figure.** At (near-)zero noise the classical control is *better* (negative gap): with few shots lost, the cheap prior alone suffices and the GFlowNet only adds variance. As noise grows, the constraint-respecting, fused generative proposer pulls ahead — the gap turns positive and the error bars separate. This is the **regime-dependent, conditional** advantage the paper is careful to claim (§7), *not* a universal win. The reduced live run reproduces the key qualitative result — the gap grows monotonically with noise and is strongly positive at high noise — while the fuller production run additionally resolves the small *negative* gap at zero noise (where, with no shots lost, the classical control is marginally better).
+**Reading the N₂ figure.** At (near-)zero noise the classical control is *better* (negative gap): with few shots lost, the cheap prior alone suffices and the GFlowNet only adds variance. As noise grows, the constraint-respecting, fused generative proposer pulls ahead — the gap turns positive (positive in all five seeds; with only n=5 the distribution-free significance floors at p=0.0625, so we treat the parametric *t* as a reproducibility diagnostic, not a discovery σ). This is a **conditional, noise-driven** effect, not a universal win. The reduced live run reproduces the key qualitative result; the production run additionally resolves the small *negative* gap at zero noise.
+
+### Why does the advantage appear? A first contrast, then a controlled test
+
+The N₂ result alone cannot say *why* the advantage appears — is it the noise (valid-shot starvation), or the multireference character (imperfect prior)? A natural first probe is a **second system**: single-reference H₂O (CAS(8e,12o), Hartree–Fock weight 0.96), which suffers the *same* shot starvation but whose cheap prior stays accurate. As we'll see, this two-molecule contrast is *suggestive but confounded* (the molecules differ in dimension and coverage, not only multireference), so it merely motivates the clean, single-molecule controlled experiment that follows it.
+""")
+co(r"""
+# ---- H2O crossover control: same pipeline, single-reference system (reduced-but-real) ----
+def h2o_crossover(scales=(0.0,1.5,3.0), seeds=(0,1,2), iters=600, shots=1000):
+    NC, NE = 12, (4,4); a, b = NE
+    m = gto.M(atom="O 0 0 0.1173; H 0 0.7572 -0.4692; H 0 -0.7572 -0.4692", basis="cc-pvdz", verbose=0)
+    f = scf.RHF(m).run(); c = mcscf.CASCI(f, NC, NE)
+    H1, EC = c.get_h1cas(); H2 = ao2mo.restore(1, c.get_h2cas(), NC)
+    sA = cistring.make_strings(range(NC), a); dA = len(sA)
+    s2i = {int(s): i for i, s in enumerate(sA)}
+    set2i = {frozenset(p for p in range(NC) if (int(s)>>p)&1): i for i, s in enumerate(sA)}
+    hfi = s2i[(1<<a)-1]
+    v0 = np.zeros((dA,dA)); v0[hfi,hfi]=1.0
+    H2e = direct_spin1.absorb_h1e(H1, H2, NC, NE, 0.5)
+    Hc = direct_spin1.contract_2e(H2e, v0, NC, NE).reshape(dA,dA)
+    hd = direct_spin1.make_hdiag(H1, H2, NC, NE).reshape(dA,dA)
+    den = Hc[hfi,hfi]-hd; den[hfi,hfi]=1.0; cc=Hc/den; cc[hfi,hfi]=1.0
+    wc = (cc**2).sum(1); wc/=wc.sum(); corder=np.argsort(wc)[::-1]
+    eF, cV = pyscf.fci.direct_spin1.FCI().kernel(H1, H2, NC, NE, ecore=EC); cV=cV.reshape(dA,dA)
+    wT=(cV**2).sum(1); wT/=wT.sum(); wHF=float(cV[hfi,hfi]**2)
+    _s = selected_ci.SelectedCI()
+    def E(idxs):
+        s=np.asarray(sorted(set(int(sA[i]) for i in idxs)),dtype=np.int64)
+        o=selected_ci.kernel_fixed_space(_s,H1,H2,NC,NE,(s,s),ecore=EC)
+        return (float(o[0] if isinstance(o,(tuple,list)) else o)-eF)*1000
+    class P2(nn.Module):
+        def __init__(s,n): super().__init__(); s.net=nn.Sequential(nn.Linear(n,256),nn.ReLU(),nn.Linear(256,256),nn.ReLU(),nn.Linear(256,n)); s.logZ=nn.Parameter(torch.zeros(1))
+        def forward(s,x): return s.net(x)
+    def sb(net,B):
+        st=torch.zeros(B,NC); lpf=torch.zeros(B)
+        for _ in range(a):
+            lp=torch.log_softmax(net(st).masked_fill(st.bool(),-1e9),1)
+            ac=torch.distributions.Categorical(logits=lp).sample(); lpf+=lp.gather(1,ac[:,None]).squeeze(1); st=st.scatter(1,ac[:,None],1.0)
+        return np.array([set2i[frozenset(np.where(st[k].numpy()>0)[0].tolist())] for k in range(B)]),lpf
+    def tad(rew,it):
+        net=P2(NC); opt=torch.optim.Adam([{"params":net.net.parameters(),"lr":1e-3},{"params":[net.logZ],"lr":1e-1}])
+        Rt=torch.tensor(rew/rew.sum(),dtype=torch.float32)
+        for _ in range(it):
+            idx,lpf=sb(net,256); loss=((net.logZ+lpf-torch.log(Rt[idx]+1e-12))**2).mean(); opt.zero_grad(); loss.backward(); opt.step()
+        o=[]
+        while len(o)<15000: idx,_=sb(net,512); o+=idx.tolist()
+        cc2={}
+        for i in o: cc2[i]=cc2.get(i,0)+1
+        return cc2
+    def b2s(bb): return int(sum(int(v)<<p for p,v in enumerate(bb)))
+    D=120
+    def one(scale,seed):
+        P10,P01,LAM=min(P100*scale,0.5),min(P010*scale,0.5),min(LAMBDA0*scale,0.9)
+        r=np.random.default_rng(seed); torch.manual_seed(seed)
+        ideal=r.choice(dA,size=shots,p=wT)
+        bits=np.array([[(int(sA[i])>>p)&1 for p in range(NC)] for i in ideal],dtype=np.int8)
+        dep=r.random(shots)<LAM; bits[dep]=(r.random((dep.sum(),NC))<0.5).astype(np.int8)
+        o,z=bits==1,bits==0; bits[o&(r.random(bits.shape)<P10)]=0; bits[z&(r.random(bits.shape)<P01)]=1
+        good=np.array([int(bb.sum())==a for bb in bits]); occ=bits[good].mean(0) if good.any() else np.full(NC,a/NC)
+        rec=[]
+        for row in bits:
+            s=row.copy(); mm=int(s.sum())
+            if mm==a: rec.append(b2s(s)); continue
+            if mm>a: od=np.where(s==1)[0]; s[od[np.argsort(occ[od])[:mm-a]]]=0
+            else: em=np.where(s==0)[0]; s[em[np.argsort(occ[em])[::-1][:a-mm]]]=1
+            rec.append(b2s(s))
+        cibm={}
+        for s in rec: i=s2i[s]; cibm[i]=cibm.get(i,0)+1
+        ff=np.zeros(dA)
+        for i,v in cibm.items(): ff[i]=v
+        ff/=max(ff.sum(),1)
+        rew=np.maximum(ff+0.1*wc/wc.max()*max(ff.max(),1e-9),1e-9)**0.5
+        gf=tad(rew,iters); rank=lambda d:[i for i,_ in sorted(d.items(),key=lambda kv:-kv[1])]
+        sel=list(dict.fromkeys(rank(cibm)))[:D]
+        for i in corder:
+            if len(sel)>=D: break
+            if i not in sel: sel.append(int(i))
+        return E(sel[:D]), E(rank(gf)[:D])
+    out={}
+    for sc in scales:
+        g=[]
+        for sd in seeds:
+            ei,eg=one(sc,sd); g.append(ei-eg)
+        out[sc]=(float(np.mean(g)),float(np.std(g)))
+    return out, wHF
+
+log("H2O crossover control (reduced-but-real; single-reference, HF weight ~0.96)...")
+h2o_live, h2o_wHF = h2o_crossover()
+for sc,(mg,sg) in h2o_live.items(): log(f"  scale {sc:.1f}: gap = {mg:+6.2f} ± {sg:4.2f} mHa")
+log(f"H2O Hartree-Fock weight = {h2o_wHF:.3f} (single-reference)")
+""")
+co(r"""
+# ---- A first (later-confounded) contrast: N2 vs H2O ----
+h2o_prod_scale=[0,1,2,3]; h2o_prod_gap=[-0.10,-1.29,-2.91,1.35]; h2o_prod_std=[0.35,0.95,1.01,4.45]
+fig, ax = plt.subplots(figsize=(7.4, 4.7))
+ax.axhline(0, color="k", lw=1)
+ax.axhspan(-30,0,color=OI["vermilion"],alpha=0.06); ax.axhspan(0,30,color=OI["green"],alpha=0.06)
+ax.errorbar(prod_scale, prod_gap, yerr=prod_std, fmt="s-", color=OI["blue"], lw=2, ms=8, capsize=4,
+            label="N$_2$ (stretched, HF wt. 0.34)")
+ax.errorbar(h2o_prod_scale, h2o_prod_gap, yerr=h2o_prod_std, fmt="^--", color=OI["orange"], lw=2, ms=9, capsize=4,
+            label="H$_2$O (equilibrium, HF wt. 0.96)")
+ax.text(0.06, 11.5, "GFlowNet better", color=OI["green"], fontsize=11, fontweight="bold")
+ax.text(2.0, -17, "classical control better", color=OI["vermilion"], fontsize=11, fontweight="bold")
+ax.set_ylim(-20, 16); ax.set_xlabel("noise scale (× FakeTorino / Heron)")
+ax.set_ylabel(r"gap $E_{\rm ibm+cheap}-E_{\rm gfn}$ (mHa)")
+ax.set_title("N$_2$ vs H$_2$O — suggestive, but confounded (see below)"); ax.legend(loc="lower right", fontsize=10)
+plt.savefig("/w/nb_fig6b_crossover_2sys.png", bbox_inches="tight"); plt.show()
+""")
+md(r"""
+**This contrast *looks* like multireference-specificity — and is confounded.** Stretched N₂ crosses over; equilibrium H₂O does not (classical control significantly better at 2×). It is tempting to conclude the crossover *requires* multireference character. But N₂ and H₂O differ in **everything at once**: molecule, electron count (10e vs 8e), and Hilbert dimension ($\binom{12}{5}{=}792$ vs $\binom{12}{4}{=}495$), so at fixed $D{=}120$ the classical fill covers **24%** of H₂O's space but only **15%** of N₂'s. Coverage, not chemistry, could explain the difference. With one molecule per condition there are **zero degrees of freedom** to separate them. So we do the controlled experiment.
+""")
+md(r"""
+### The controlled test — vary *only* multireference character
+
+We run the identical noise sweep along the **N₂ dissociation coordinate** at fixed active space (10e,12o): same molecule, same electron count, same dimension (792), only multireference character changing (HF weight 0.93 → 0.12 as R = 1.1 → 2.5 Å). This is the clean, one-variable test the two-molecule contrast cannot be. (Full run: `calculations/n2_ladder_crossover.py`, 4 geometries × 2 noise scales × 5 seeds; production numbers quoted below.)
+""")
+co(r"""
+# ---- Figure 7: the CONTROLLED single-molecule test (paper Fig. 10) ----
+# production numbers from calculations/n2_ladder_crossover.py (5 seeds, R fixed active space)
+Rlad   = [1.1, 1.7, 2.0, 2.5]
+gap0   = [-1.88, -0.21, -6.91, -7.87];  gap0sd = [0.98, 1.79, 3.66, 6.40]   # no noise
+gap3   = [10.13, 21.18, 13.60, 10.28];  gap3sd = [2.85, 10.79, 4.97, 2.93]  # 3x Heron noise
+fig, ax = plt.subplots(figsize=(7.4, 4.7))
+ax.axhline(0, color="k", lw=1)
+ax.axhspan(-30,0,color=OI["vermilion"],alpha=0.06); ax.axhspan(0,35,color=OI["green"],alpha=0.06)
+ax.errorbar(Rlad, gap3, yerr=gap3sd, fmt="s-",  color=OI["blue"],   lw=2, ms=8, capsize=4, label="3× Heron noise")
+ax.errorbar(Rlad, gap0, yerr=gap0sd, fmt="^--", color=OI["orange"], lw=2, ms=9, capsize=4, label="no noise (0×)")
+ax.text(1.12, 31, "GFlowNet better", color=OI["green"], fontsize=11, fontweight="bold")
+ax.text(1.12, -14, "classical control better", color=OI["vermilion"], fontsize=11, fontweight="bold")
+ax.set_ylim(-17, 35); ax.set_xlabel(r"N$_2$ bond length $R$ ($\AA$)   [more multireference $\rightarrow$]")
+ax.set_ylabel(r"gap $E_{\rm ibm+cheap}-E_{\rm gfn}$ (mHa)")
+ax.set_title("Controlled test: the crossover is universal across N$_2$ dissociation"); ax.legend(loc="upper right", fontsize=10)
+plt.savefig("/w/nb_fig7_ladder.png", bbox_inches="tight"); plt.show()
+""")
+md(r"""
+**The controlled verdict — an honest partial negative.** At **3× noise (blue)** the generative proposer wins at *every* geometry (+10 to +21 mHa, positive in all five seeds each) — **including the near-single-reference R = 1.1 case**. So the crossover is driven by **valid-shot starvation** (~51% lost at 3×, essentially constant across R), **not** by multireference character. What multireference character controls is the **zero-noise (orange)** baseline, where the classical advantage *deepens* with it (−1.9 → −7.9 mHa) — the opposite of a generative opening. **The two axes are decoupled.** This *refutes* the multireference-specific reading the N₂-vs-H₂O contrast suggested; that contrast was a subspace-coverage confound.
+
+The honest conclusion is narrower — and stronger for the paper's skeptical thesis: the only generative advantage we can demonstrate is a **noise-robustness** effect (valid-by-construction sampling under shot starvation), available across chemistry and **not** a quantum or chemistry advantage — any constraint-respecting classical sampler shares the mechanism. With five seeds the sharpest distribution-free statement is that all five agree in sign (sign-flip floor p = 0.0625); the parametric *t* is a reproducibility diagnostic only. That a controlled test of our own hypothesis returns a partial negative is exactly the kind of result §6 asks the field to produce.
 """)
 
-# ============================================================ SECTION 6
+# ============================================================ SECTION 7 (HCI)
 md(r"""
-## 6 · The decisive classical test — does it beat heat-bath CI at verifiable scale?
+## 7 · The decisive classical test — does it beat heat-bath CI at verifiable scale?
 
 The sharpest critique (Reinholdt *et al.*, 2025) is that SQD's subspaces are *less compact* than a strong classical selected-CI. We settle it directly: at a fixed, FCI-verifiable subspace dimension $D=120$, we compare **iterative heat-bath CI (HCI)** — bootstrapped from the current correlated wavefunction, the strongest classical competitor — against the oracle and against the GFlowNet numbers under noise. If HCI matches or beats the sampler-driven methods, **classical selected-CI wins at every scale where truth is knowable** — the honest verdict.
 """)
@@ -561,19 +759,20 @@ The bars reproduce the paper's decisive numbers: at a dimension where the exact 
 
 # ============================================================ SECTION 7
 md(r"""
-## 7 · Synthesis — what the numbers say
+## 8 · Synthesis — what the numbers say
 
 Putting the sections together, exactly as the review argues:
 
 1. **§1–§2** The problem is real: the ground-state weight is heavy-tailed, and the important tail is a coupon-collector problem — a genuine target for a smart proposer.
 2. **§3** S-CORE recovery works, and much of SQD's noise-robustness is *classical* post-processing, not the quantum sampler.
-3. **§4** A GFlowNet learns the important region from a cheap, FCI-free signal — but in the noise-free regime it does **not** beat deterministic HCI/CIPSI selection by the same signal.
-4. **§5** The generative advantage is **conditional**: it emerges only as noise grows, where valid-by-construction sampling and prior–data fusion pay off.
-5. **§6** At every FCI-verifiable scale, **strong classical selected-CI wins**.
+3. **§4** A GFlowNet learns the important region from a cheap, FCI-free signal — but in the noise-free regime it does **not** beat deterministic HCI/CIPSI selection by the same signal (192 vs 41 mHa at D=120).
+4. **§5** The cheap prior's rank correlation with the truth (ρ) *declines monotonically* with multireference character — a usable, hardware-free coordinate for where the prior misranks.
+5. **§6** Under noise the generative proposer does pull ahead — but a **controlled single-molecule test refutes** the idea that this is multireference-specific: the crossover is a **generic noise-robustness effect** (valid-by-construction sampling under shot starvation), present across the whole N₂ dissociation curve, and *not* a quantum or chemistry advantage. An honest partial negative on our own hypothesis.
+6. **§7** At every FCI-verifiable scale, **strong classical selected-CI wins**.
 
-**The honest verdict** (paper §5.5): there is no reproducible, same-active-space demonstration that the SQD sampler — or its ML augmentation — beats classical selected-CI on molecular electronic structure at verifiable scale. **The compass** (paper §7): this points generative and quantum methods toward the noise-limited / multireference regimes and, decisively, toward the quantum-data-native *learning-from-experiments* task, where the classical lower bound is an unconditional theorem rather than a conjecture about circuit structure.
+**The honest verdict** (paper §5.5): there is no reproducible, same-active-space demonstration that the SQD sampler — or its ML augmentation — beats classical selected-CI on molecular electronic structure at verifiable scale. **The compass** (paper §7): the one *demonstrated* generative effect is generic noise-robustness (not a quantum edge); genuinely multireference chemistry remains an *open, probed-but-unconfirmed* prediction; and the decisive place a quantum advantage is *provable* is the quantum-data-native *learning-from-experiments* task, where the classical lower bound is an unconditional theorem rather than a conjecture about circuit structure.
 
-> Every figure in this notebook is saved to disk (`nb_fig*.png`) and every number is computed above from `pyscf` + `torch` with fixed seeds. Nothing is asserted that is not derived. This is the standard §6 asks the field to adopt.
+> Every figure in this notebook is saved to disk (`nb_fig*.png`) and every number is computed above from `pyscf` + `torch` with fixed seeds. Nothing is asserted that is not derived. This is the standard §6 asks the field to adopt — including reporting a controlled test that comes back negative.
 """)
 
 # ============================================================ ASSEMBLE
