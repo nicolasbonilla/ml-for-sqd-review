@@ -1,0 +1,123 @@
+{
+ "NCAS": 12,
+ "NELECAS": [
+  5,
+  5
+ ],
+ "geoms": {
+  "1.10": {
+   "R_ang": 1.1,
+   "E_FCI_Ha": -109.07670638965095,
+   "NOONs_top8": [
+    1.9947,
+    1.989,
+    1.9812,
+    1.9456,
+    1.9456,
+    0.0561,
+    0.0561,
+    0.0083
+   ],
+   "frontier_HOMO_NOON": 1.9456,
+   "frontier_LUMO_NOON": 0.0561,
+   "sum_fractional_occ": 0.2875,
+   "weight_HF_determinant": 0.93,
+   "spearman_cheap_vs_true": 0.7245
+  },
+  "1.40": {
+   "R_ang": 1.4,
+   "E_FCI_Ha": -108.9961057707211,
+   "NOONs_top8": [
+    1.9902,
+    1.9808,
+    1.95,
+    1.8631,
+    1.8631,
+    0.1406,
+    0.1406,
+    0.0494
+   ],
+   "frontier_HOMO_NOON": 1.8631,
+   "frontier_LUMO_NOON": 0.1406,
+   "sum_fractional_occ": 0.7055,
+   "weight_HF_determinant": 0.8367,
+   "spearman_cheap_vs_true": 0.7013
+  },
+  "1.70": {
+   "R_ang": 1.7,
+   "E_FCI_Ha": -108.87165914043717,
+   "NOONs_top8": [
+    1.9893,
+    1.9813,
+    1.8812,
+    1.657,
+    1.657,
+    0.3442,
+    0.3442,
+    0.121
+   ],
+   "frontier_HOMO_NOON": 1.657,
+   "frontier_LUMO_NOON": 0.3442,
+   "sum_fractional_occ": 1.6683,
+   "weight_HF_determinant": 0.6396,
+   "spearman_cheap_vs_true": 0.6775
+  },
+  "2.00": {
+   "R_ang": 2.0,
+   "E_FCI_Ha": -108.80804191446973,
+   "NOONs_top8": [
+    1.9927,
+    1.9866,
+    1.6985,
+    1.3236,
+    1.3236,
+    0.6748,
+    0.6748,
+    0.3029
+   ],
+   "frontier_HOMO_NOON": 1.3236,
+   "frontier_LUMO_NOON": 0.6748,
+   "sum_fractional_occ": 3.3499,
+   "weight_HF_determinant": 0.3392,
+   "spearman_cheap_vs_true": 0.6421
+  },
+  "2.30": {
+   "R_ang": 2.3,
+   "E_FCI_Ha": -108.7898903597837,
+   "NOONs_top8": [
+    1.9946,
+    1.9899,
+    1.4517,
+    1.1313,
+    1.1313,
+    0.8668,
+    0.8668,
+    0.5493
+   ],
+   "frontier_HOMO_NOON": 1.1313,
+   "frontier_LUMO_NOON": 0.8668,
+   "sum_fractional_occ": 4.6025,
+   "weight_HF_determinant": 0.17,
+   "spearman_cheap_vs_true": 0.6107
+  },
+  "2.50": {
+   "R_ang": 2.5,
+   "E_FCI_Ha": -108.78657903959694,
+   "NOONs_top8": [
+    1.9954,
+    1.9929,
+    1.3103,
+    1.0753,
+    1.0753,
+    0.9229,
+    0.9229,
+    0.6891
+   ],
+   "frontier_HOMO_NOON": 1.0753,
+   "frontier_LUMO_NOON": 0.9229,
+   "sum_fractional_occ": 5.1015,
+   "weight_HF_determinant": 0.1208,
+   "spearman_cheap_vs_true": 0.5982
+  }
+ }
+}
