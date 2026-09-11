@@ -79,10 +79,10 @@ gs=fig.add_gridspec(2,5, width_ratios=[1.05,1.25,1,1,1], height_ratios=[1,1],
 # ---- Row 1: N2 ----
 img(fig.add_subplot(gs[0,0]), "/w/o_n2_struct.png", r"(a) N$_2$,  $R=2.0\,$Å", "CAS(10e, 12o)")
 mo_diagram(fig.add_subplot(gs[0,1]), n2e, 7, 2, 12,
-           {4:r"$3\sigma_g$", 6:r"$1\pi_u$ (HOMO, 2-fold)", 7:r"$1\pi_g^{*}$ (LUMO)", 9:r"$3\sigma_u^{*}$"},
+           {5:r"$1\pi_u$", 6:r"$3\sigma_g$ (HOMO)", 7:r"$1\pi_g^{*}$ (LUMO)", 9:r"$3\sigma_u^{*}$"},
            r"(b) N$_2$ MO levels")
-img(fig.add_subplot(gs[0,2]), "/w/o_n2_pi.png",     r"(c) $1\pi_{u}$ (HOMO, 2-fold)", f"{ev(n2e,5):+.1f} eV")
-img(fig.add_subplot(gs[0,3]), "/w/o_n2_sg_true.png",r"(d) $3\sigma_g$",             f"{ev(n2e,4):+.1f} eV")
+img(fig.add_subplot(gs[0,2]), "/w/o_n2_pi.png",     r"(c) $1\pi_u$ bonding", f"{ev(n2e,5):+.1f} eV")
+img(fig.add_subplot(gs[0,3]), "/w/o_n2_sg.png",     r"(d) $3\sigma_g$ HOMO",  f"{ev(n2e,6):+.1f} eV")
 img(fig.add_subplot(gs[0,4]), "/w/o_n2_pistar.png", r"(e) $1\pi_g^{*}$ LUMO", f"{ev(n2e,7):+.1f} eV")
 # ---- Row 2: H2O ----
 img(fig.add_subplot(gs[1,0]), "/w/o_h2o_struct.png", r"(f) H$_2$O", "CAS(8e, 12o)")

@@ -1,110 +1,133 @@
-# Machine learning for sample-based quantum diagonalization — reproducible code
+<div align="center">
 
-Reproducible calculations, figures, and the companion notebook for the critical review
+# Machine learning for sample-based quantum diagonalization
+### *generative configuration recovery and the classical-simulability frontier*
 
-> **Machine learning for sample-based quantum diagonalization: generative configuration recovery and the classical-simulability frontier**
-> Nicolás Bonilla Vargas — *arXiv:XXXX.XXXXX* (link added on posting)
+**Nicolás Bonilla Vargas** &nbsp;[![ORCID](https://img.shields.io/badge/ORCID-0009--0006--6155--4391-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0006-6155-4391)
 
-Every quantitative claim, every figure, and every table in the paper is regenerated **from first principles, with fixed random seeds**, by the code in this repository. Nothing requires proprietary data or quantum-hardware access: all "real-noise" results use *local, backend-calibrated* noise models (`FakeTorino`, IBM Heron r1), so a laptop reproduces everything.
+[![arXiv](https://img.shields.io/badge/arXiv-2608.05314-b31b1b.svg)](https://arxiv.org/abs/2608.05314)
+[![Paper](https://img.shields.io/badge/paper-PDF%20(36%20pp)-blue.svg)](paper/main.pdf)
+[![Type](https://img.shields.io/badge/type-review%20%2F%20perspective-8A2BE2.svg)](paper/main.pdf)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-green.svg)](LICENSE)
+[![Text: CC BY 4.0](https://img.shields.io/badge/text-CC--BY--4.0-lightgrey.svg)](LICENSE)
 
----
-
-### ▶ Run or read the calculations in one click
-
-[![Open the notebook in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nicolasbonilla/ml-for-sqd-review/blob/main/notebook/GFlowNet_SQD_calculations.ipynb)
-
-- **Read it here, no install:** GitHub renders [`notebook/GFlowNet_SQD_calculations.ipynb`](notebook/GFlowNet_SQD_calculations.ipynb) inline — every cell and every embedded figure is visible in the browser.
-- **Run it in the browser:** click the Colab badge above (or [this link](https://colab.research.google.com/github/nicolasbonilla/ml-for-sqd-review/blob/main/notebook/GFlowNet_SQD_calculations.ipynb)) and *Runtime → Run all*.
-- **Download the whole repository:** `git clone https://github.com/nicolasbonilla/ml-for-sqd-review.git` — or **Code ▸ Download ZIP** on GitHub. Everything (notebook, calculation scripts, figure scripts, the generated figures in `figures_output/`, and the Docker environments) comes in a single download.
-- **See the figures without running anything:** the definitive figures are the native-TikZ ones in the compiled manuscript [`paper/Paper_Review_ML_SQD.pdf`](paper/Paper_Review_ML_SQD.pdf) (source: [`paper/arxiv_source/main.tex`](paper/arxiv_source/main.tex)); [`figures_output/`](figures_output/) additionally holds earlier standalone renders as PDF/PNG.
+</div>
 
 ---
 
-## Quick start
+A critical review of machine learning for sample-based quantum diagonalization (SQD),
+equivalently quantum-selected configuration interaction (QSCI). It organizes the
+ecosystem of generative and learned configuration selectors, reports a carefully scoped
+negative on whether the quantum sampler beats classical selected CI, distils a
+benchmarking standard, and tests that standard on FCI-exact systems — **including
+against the paper's own positive result.**
 
-**Option A — one notebook, in the browser (no install).** Open `notebook/GFlowNet_SQD_calculations.ipynb` in Google Colab and run all cells. It reproduces, in order: the exact FCI reference, the coupon-collector statistics, S-CORE recovery under noise, the Epstein–Nesbet reward and the GFlowNet compactness study, the noise crossover, and the decisive heat-bath-CI test.
+**The manuscript is `paper/main.tex`. It is the only live manuscript in this
+repository.**
 
-**Option B — Docker (bit-for-bit).** The exact images used for the paper:
+---
+
+## Every figure, and what produces it
+
+The paper has ten figures. **Two are schematics that live entirely in the LaTeX source
+and have no data behind them** — that is stated here rather than left for you to
+discover. The other eight are listed with the script that produces their data.
+
+| Figure | Source | Produced by |
+|---|---|---|
+| 1 `fig:loop` — SQD workflow | `wf_occ.dat`, `wf_hist.dat` | [`figures/gen_fig1.py`](figures/gen_fig1.py) |
+| 2 `fig:system` — molecular orbitals | `pf_system.pdf` | [`figures/compose_fig2.py`](figures/compose_fig2.py) + `gen_cubes.py` + `render_orb.py` (PyMOL) |
+| 3 `fig:coupon` — coupon-collector | `coupon_w.dat`, `coupon_cum.dat` | [`figures/gen_coupon.py`](figures/gen_coupon.py) |
+| 4 `fig:score` — S-CORE recovery | `recovery.dat` | [`figures/data_figs.py`](figures/data_figs.py) (§ recovery panel) |
+| 5 `fig:taxonomy` — method taxonomy | — | **schematic; pure TikZ in `main.tex`** |
+| 6 `fig:compact` — GFlowNet compactness | numbers inline in `main.tex` | [`figures/fig6_5seed.py`](figures/fig6_5seed.py) ⚠️ read the trap below |
+| 7 `fig:hci` — classical selected CI | numbers inline in `main.tex` | [`calculations/hci_baseline.py`](calculations/hci_baseline.py) |
+| 8 `fig:landscape` — regime map | — | **schematic; pure TikZ in `main.tex`** |
+| 9 `fig:orderparam` — order parameter | `orderparam.dat` | [`calculations/compute_physics.py`](calculations/compute_physics.py) |
+| 10 `fig:crossover` — noise ladder | `ladder.dat` | [`calculations/n2_ladder_crossover.py`](calculations/n2_ladder_crossover.py) |
+
+All ten figures are **native TikZ/PGFPlots inside `main.tex`** — there are no raster
+figures and no external figure PDFs except the ray-traced orbital panel of Fig. 2.
+The scripts above produce the *data*; the drawing lives in the manuscript.
+
+## Two traps that will cost you a day
+
+**1 · The reward floor of Fig. 6.** `np.maximum(w, 1e-12)` versus
+`FLOOR = 1e-3 * w.max()` — nine orders of magnitude — changes the result by a factor of
+ten **and reverses the conclusion.** The v1 script `compact_fig.py` used the former and
+does *not* reproduce Fig. 6; it is kept only as
+[`figures/OBSOLETO_compact_fig_v1.py`](figures/OBSOLETO_compact_fig_v1.py) with a
+warning header. **Use `fig6_5seed.py`.**
+
+**2 · `%` is a comment, `#` is not.** pgfplots does **not** treat `#` as a comment
+character: a `#`-commented header is read as data and silently destroys the plot with no
+compilation error. Every `.dat` here comments its header with `%`. From numpy, read them
+with `comments='%'`.
+
+## Reproducing
+
+PySCF publishes no Windows wheels, so on Windows it is Docker or WSL:
+
 ```bash
-docker build -t sqd-nb  -f docker/Dockerfile.nb  .   # pyscf + torch + qiskit (calculations, notebook, data-figures)
-docker build -t sqd-tex -f docker/Dockerfile.tex .   # texlive-xetex + pdflatex (the manuscript)
-docker build -t sqd-viz -f docker/Dockerfile.viz .   # sqd-nb + PyMOL (ray-traced molecular orbitals)
-# example: reproduce the decisive classical test (H2O, N2, C2 at D=120)
-docker run --rm -v "$PWD:/w" -w /w sqd-nb python calculations/hci_baseline.py
+printf 'FROM python:3.11-slim\nRUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*\nRUN pip install --no-cache-dir numpy scipy pyscf\n' > Dockerfile
+docker build -t sqd-fci .
+docker run --rm -e OMP_NUM_THREADS=1 -v "$PWD":/w -w /w sqd-fci python /w/figures/gen_fig1.py
 ```
 
-**Option C — bare Python (≥3.10).** `pip install -r requirements.txt`, then run any script in `calculations/` or `figures/`.
+**Pin the threads.** With degenerate shells, canonical RHF orbitals are *not*
+reproducible run to run: four runs with default threading gave π orientations of
+30.05° / 13.83° / 64.94° / 144.92°; with `OMP_NUM_THREADS=1`, all four gave 130.192°.
+See [`gauge_study/determinismo.py`](gauge_study/determinismo.py).
 
-> **New in the latest revision:** the natural-orbital / order-parameter sweep (`calculations/compute_physics.py`) and the single-reference **H₂O crossover control** (`calculations/h2o_crossover.py`) are standalone analyses that run under the `sqd-nb` image and write to `results/`; the corrected genuine 3σ_g orbital of Fig. 2 is rendered by `figures/gen_sg_true.py` + `figures/render_sg.py` (`sqd-viz`). These are not yet folded into the Colab notebook.
+The system throughout is **N₂, R = 2.0 Å, cc-pVDZ, CAS(10e,12o)**, which reproduces
+`E_FCI = −108.808041914843 Ha` and has 792 α-strings. No proprietary data and no quantum
+hardware access is needed for any figure or table: all "real-noise" results use local,
+backend-calibrated noise models (`FakeTorino`, IBM Heron r1).
 
----
+## `gauge_study/` — why the counts are gauge-dependent
 
-## Where every number comes from
+The α-string weights are **not invariant** under rotations inside a degenerate orbital
+shell: the rotation leaves `E_FCI` untouched and redistributes weight between strings.
+This is why the 90 % determinant count is 11 in one run and 12 in another — it is not
+anyone's arithmetic error, it is a quantity that is only well defined once the
+degenerate multiplets are completed. Six scripts establish this; see
+[`gauge_study/README.md`](gauge_study/README.md). The invariant object is the α|β
+Schmidt spectrum, verified stable to 10⁻¹⁵ across eight SO(12) rotations while the
+string count moves from 10 to 450.
 
-| Claim in the paper | Reproduced by | Value |
-|---|---|---|
-| Exact FCI reference, N₂ CAS(10e,12o) cc-pVDZ, R=2.0 Å | `calculations/mve_backbone.py`, `calculations/verify_coupon.py` | **E = −108.808042 Ha** |
-| Coupon-collector: 90 % of weight in 12 of 792 strings (1.5 %) | `calculations/verify_coupon.py` | cum@11 = 0.894, cum@12 = 0.905 |
-| Decisive classical test, heat-bath CI at D=120 | `calculations/hci_baseline.py` | H₂O 0.56, N₂ 9.8, C₂ −25.4 mHa (C₂ pathological → dropped) |
-| GFlowNet compactness vs classical greedy & oracle (β=0.5 tempered, 5-seed) | `calculations/gflownet_temper.py`, notebook cell 20 | GFlowNet 192±19 vs greedy **41.3** vs oracle 17.0 mHa at D=120 — the cheap-reward GFlowNet does **not** beat the classical greedy selector |
-| Order parameter: cheap Epstein–Nesbet reward vs exact \|c\|² (Spearman) | `calculations/compute_physics.py` | ρ ≈ **0.64** at R=2.0 Å; falls monotonically 0.72→0.60 as N₂ stretches into the multireference regime |
-| Multireference character: FCI natural-orbital occupations vs geometry | `calculations/compute_physics.py` | HF weight 0.93→0.12; frontier NOONs 1.95/0.06→1.08/0.92 (R=1.1→2.5 Å) |
-| Noise crossover, single N₂ geometry | `calculations/noise_sweep.py`, `calculations/gflownet_realnoise.py` | 5-seed gaps [−11.7, +0.3, +9.7, +9.8] mHa (sign-flip floor p=0.0625 at n=5; t is a reproducibility diagnostic) |
-| **Controlled test** — crossover vs N₂ geometry (only multireference varies) | `calculations/n2_ladder_crossover.py` | at 3× noise the crossover is **universal** (gap +10…+21 mHa at every R, incl. near-single-reference R=1.1) → driven by shot-starvation, **not** multireference; **refutes** the multireference-specific reading |
-| Cross-molecule contrast (confounded) — H₂O vs N₂ | `calculations/h2o_crossover.py` | H₂O 5-seed gaps [−0.1, −1.3, −2.9, +1.4] mHa; the apparent difference is a subspace-coverage confound (24% vs 15% at D=120), not chemistry |
-| Backend-calibrated noise (asymmetric readout, FakeTorino / Heron r1) | `calculations/validate_realnoise.py` | — |
+## What is *not* here
 
-## Where every figure comes from
+Being explicit, so nothing here promises more than it delivers:
 
-The ten paper figures are **native TikZ / PGFPlots** drawn inside the manuscript source
-[`paper/arxiv_source/main.tex`](paper/arxiv_source/main.tex) (the authoritative version; they share the
-colour-blind-safe Okabe–Ito palette and keep legends/labels outside the data area). The `figures/` scripts
-below generate the underlying **data** (`.dat` in `paper/arxiv_source/`, `results/`) and the ray-traced
-orbital panels; the two data-driven exceptions are Fig. 2 (raster orbital renders) and the numeric inputs the
-TikZ reads.
-
-| Figure | Data / render source |
-|---|---|
-| Fig. 1 — SQD workflow | native TikZ (`main.tex`) + data from `figures/data_figs.py` |
-| Fig. 2 — active-space molecular orbitals (σ/π/π* + MO ladders) | `figures/compose_fig2.py` + `figures/gen_cubes.py` + `figures/gen_sg_true.py` + `figures/render_orb.py` / `figures/render_sg.py` (PyMOL) |
-| Fig. 3 — coupon-collector | native TikZ + `figures/coupon_fig.py` data |
-| Fig. 4 — S-CORE recovery under noise | native TikZ + `figures/data_figs.py` (`recovery.dat`) |
-| Fig. 5 — taxonomy of ML methods (incl. RL-CI vs GFlowNet whitespace) | native TikZ (`main.tex`) |
-| Fig. 6 — GFlowNet compactness | native TikZ + `calculations/gflownet_temper.py` |
-| Fig. 7 — decisive heat-bath-CI test | native TikZ + `calculations/hci_baseline.py` |
-| Fig. 8 — advantage landscape (§5–§7) | native TikZ (`main.tex`) |
-| **Fig. 9 — order parameter, measured** (Spearman ↓ vs multireference ↑) | native TikZ + `calculations/compute_physics.py` (`results/orderparam.dat`) |
-| **Fig. 10 — controlled noise-crossover test** (crossover vs N₂ geometry; refutes multireference-specificity) | native TikZ (`results/ladder.dat`) + `calculations/n2_ladder_crossover.py` |
-
----
+- **Figures 5 and 8 have no generator** — they are schematics, drawn in TikZ.
+- **Figure 2's orbital panel needs PyMOL**, which is not pip-installable in the
+  container above; `render_orb.py` documents the system-Python invocation used.
+- **`wf_occ.dat` and `wf_hist.dat` were regenerated on 2026-09-11.** The versions
+  shipped with v1 did not come from the declared recipe — they showed the degenerate π
+  pairs split (0.6568 / 0.6509) where exact FCI gives them identical (0.6603 / 0.6603),
+  and no script reproduced them. They were replaced with data that *is* reproducible
+  from the declared recipe, by `gen_fig1.py`. Figure 1 is the workflow schematic; its
+  insets illustrate weight concentration and multireference character, both unchanged.
 
 ## Layout
 
 ```
-notebook/          GFlowNet_SQD_calculations.ipynb   — end-to-end reproducibility (Colab-ready)
-calculations/      MVE system, HCI baseline, coupon-collector, GFlowNet, noise sweep,
-                   compute_physics.py (NOONs + order parameter), h2o_crossover.py (2nd system)
-figures/           data-generation + ray-traced orbital scripts (native TikZ lives in the manuscript)
-results/           computed outputs: orderparam.dat, h2o_crossover.json, physics_results.json
-paper/             compiled PDF + markdown-to-LaTeX pipeline
-paper/arxiv_source/ authoritative LaTeX source (native-TikZ figures) + the .dat the figures read
-docker/            the three exact build environments (sqd-nb, sqd-tex, sqd-viz)
+paper/          main.tex (the live manuscript), main.pdf, its .dat files, arXiv package
+figures/        generators of figure data
+calculations/   the physics behind the reported numbers
+gauge_study/    the six scripts establishing gauge dependence
+results/        the verified data files
+notebook/       end-to-end Colab notebook
+docker/         build environments
+versions/       v1 exactly as posted, frozen
 ```
 
-## Method, in one paragraph
+## Citing
 
-Sample-based quantum diagonalization (SQD / QSCI) prepares an approximate ground state on a quantum
-processor, samples electronic configurations, and diagonalizes the Hamiltonian classically in the
-sampled determinant subspace. The efficiency of the loop is set entirely by *which* configurations
-enter the subspace — a selection problem for machine learning, made acute by a coupon-collector
-bottleneck. This code studies that selection problem on an exactly-solvable minimal viable example
-(N₂ / H₂O in a CAS small enough for exact FCI), so every energy is an **error against exact truth**,
-and asks — with strong classical baselines, backend-calibrated noise, and multi-seed error bars —
-whether a quantum or generative proposer beats classical selected configuration interaction.
+Cite the paper, not the repository — see [`CITATION.cff`](CITATION.cff).
 
-## License & citation
+> Bonilla Vargas, N. *Machine learning for sample-based quantum diagonalization:
+> generative configuration recovery and the classical-simulability frontier.*
+> arXiv:2608.05314 (2026).
 
-Code: MIT (see `LICENSE`). If you use it, please cite the paper (arXiv link above). No proprietary
-data or hardware credentials are included or required.
-
-**Contact:** Nicolás Bonilla Vargas — ngbonillav@unal.edu.co
+Code is MIT; the manuscript text and figures are CC BY 4.0.
