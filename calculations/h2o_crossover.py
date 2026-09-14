@@ -20,7 +20,10 @@ except Exception: pass
 
 # equilibrium H2O, CAS(8e,12o)
 NCAS,NELECAS=12,(4,4); na,nb=NELECAS
-mol=gto.M(atom="O 0 0 0.1173; H 0 0.7572 -0.4692; H 0 -0.7572 -0.4692",basis="cc-pvdz",verbose=0)
+# symmetry=True fija el gauge orbital. Sin esto los orbitales canonicos RHF pueden
+# rotar entre corridas dentro de capas degeneradas a energia identica, y las barras
+# de error mezclan ruido del muestreador con ruido de gauge (vease gauge_study/).
+mol=gto.M(atom="O 0 0 0.1173; H 0 0.7572 -0.4692; H 0 -0.7572 -0.4692",basis="cc-pvdz",symmetry=True,verbose=0)
 mf=scf.RHF(mol).run()
 cas=mcscf.CASCI(mf,NCAS,NELECAS)
 h1,ecore=cas.get_h1cas(); h2=ao2mo.restore(1,cas.get_h2cas(),NCAS)

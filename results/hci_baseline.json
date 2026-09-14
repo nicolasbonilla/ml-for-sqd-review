@@ -1,0 +1,52 @@
+{
+ "h2o": {
+  "dim": 120,
+  "hci_mHa": 0.5634,
+  "oracle_mHa": 0.5753,
+  "gfn_mHa": 3.22,
+  "E_FCI_Ha": -76.05512477248229,
+  "atom": "O 0 0 0; H 0 0.98 0.76; H 0 -0.98 0.76",
+  "basis": "cc-pvdz",
+  "ncore": 1,
+  "ncas": 12,
+  "nelecas": [
+   4,
+   4
+  ],
+  "referencia_exacta_fiable": true
+ },
+ "n2": {
+  "dim": 120,
+  "hci_mHa": 9.1261,
+  "oracle_mHa": 9.7063,
+  "gfn_mHa": 19.06,
+  "E_FCI_Ha": -108.80804191435647,
+  "atom": "N 0 0 0; N 0 0 2.0",
+  "basis": "cc-pvdz",
+  "ncore": 2,
+  "ncas": 12,
+  "nelecas": [
+   5,
+   5
+  ],
+  "referencia_exacta_fiable": true
+ },
+ "c2": {
+  "dim": 120,
+  "hci_mHa": -26.1049,
+  "oracle_mHa": -17.5663,
+  "gfn_mHa": 9.7,
+  "E_FCI_Ha": -75.55703475165284,
+  "atom": "C 0 0 0; C 0 0 1.40",
+  "basis": "cc-pvdz",
+  "ncore": 2,
+  "ncas": 12,
+  "nelecas": [
+   4,
+   4
+  ],
+  "referencia_exacta_fiable": false,
+  "aviso": "Error NEGATIVO contra la referencia: el principio variacional lo prohibe, asi que la referencia FCI de este sistema no es exacta. El espacio activo es casi degenerado y el solucionador disperso cae por debajo de la raiz reportada. NO usar estos dos numeros; el paper omite este sistema de la Fig. 7 por esta razon."
+ },
+ "_nota": "gauge D-infinity-h adaptado por simetria, OMP_NUM_THREADS=1. gfn_mHa es una ENTRADA, no algo que este script calcule: es el error del proponente generativo bajo ruido, producido por calculations/gflownet_realnoise.py."
+}

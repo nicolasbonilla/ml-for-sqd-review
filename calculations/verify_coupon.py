@@ -6,7 +6,12 @@ from pyscf import gto, scf, mcscf, fci, ao2mo
 from math import comb
 
 for R in (2.0,):  # Angstrom, stretched triple bond
-    mol = gto.M(atom=f"N 0 0 0; N 0 0 {R}", basis="cc-pvdz", spin=0, verbose=0)
+    # symmetry=True NO es cosmetico aqui: este script verifica el conteo de cadenas, que
+    # es justo la cantidad que depende del gauge. Sin fijarlo da 12 al 90% mientras el
+    # fichero depositado (coupon_cum.dat, gauge D-infinito-h) cruza en 11. Correr con
+    # OMP_NUM_THREADS=1.
+    mol = gto.M(atom=f"N 0 0 0; N 0 0 {R}", basis="cc-pvdz", spin=0,
+                symmetry=True, verbose=0)
     mf = scf.RHF(mol).run()
     ncas, nelecas = 12, 10           # CAS(10e,12o)
     mc = mcscf.CASCI(mf, ncas, nelecas)

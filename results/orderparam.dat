@@ -1,7 +1,22 @@
+% parametro de orden de N2: rho y marcadores de caracter multirreferencial
+% N2 CAS(10e,12o) cc-pVDZ, CASCI sobre orbitales canonicos RHF
+% GAUGE: adaptado por simetria (Dooh, mol.symmetry=True), OMP_NUM_THREADS=1
+% rho = Spearman(recompensa Epstein-Nesbet marginalizada, |c|^2 exacto) sobre las
+%   792 cadenas alpha, CON las recompensas por debajo de 1e-12*max puestas a cero.
+%   Sin ese umbral el estadistico rankea residuo de cancelacion (hasta 1e-42) por
+%   encima de los ceros algebraicos, lo que sube rho en 0.085 de media y le da una
+%   dispersion de gauge de 0.063 (con umbral: 0.034). Ceros algebraicos: 701 de 792
+%   -- 546 triples-y-superiores por Slater-Condon mas 155 dobles anuladas por
+%   simetria espacial; las 91 restantes son las unicas rankeables. No confundir con
+%   las 727 entradas que quedan por debajo de 1e-12*max, que es un conteo posterior
+%   al umbral. El corte no es ajustable porque el espectro es bimodal: la senal
+%   empieza en 1.2e-12*max y el residuo no pasa de ~1e-34. Medido en
+%   gauge_study/rho_sensibilidad.py y figures/cuenta_rankeables.py.
+% generado por calculations/compute_physics.py
 R spearman sumfrac mrweight homo_noon lumo_noon
-1.10 0.7245 0.2875 0.0700 1.9456 0.0561
-1.40 0.7013 0.7055 0.1633 1.8631 0.1406
-1.70 0.6775 1.6683 0.3604 1.6570 0.3442
-2.00 0.6421 3.3499 0.6608 1.3236 0.6748
-2.30 0.6107 4.6025 0.8300 1.1313 0.8668
-2.50 0.5982 5.1015 0.8792 1.0753 0.9229
+1.10 0.4723 0.2875 0.0700 1.9456 0.0561
+1.40 0.4505 0.7055 0.1633 1.8631 0.1406
+1.70 0.4354 1.6683 0.3604 1.6570 0.3442
+2.00 0.4144 3.3499 0.6608 1.3236 0.6748
+2.30 0.3855 4.6025 0.8300 1.1313 0.8668
+2.50 0.3790 5.1016 0.8792 1.0753 0.9229

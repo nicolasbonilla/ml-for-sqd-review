@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 """Publication-grade VECTOR (PDF) data figures for the review.
-Recomputes the real physics (fixed seeds) and renders Nature-style multi-panel figures."""
+Recomputes the real physics (fixed seeds) and renders Nature-style multi-panel figures.
+
+GAUGE (see gauge_study/). Every molecule here is built with symmetry=True. Canonical RHF
+orbitals are not determined inside the degenerate pi shells -- repeated runs of identical
+code return different orientations at the same energy to 1e-13 Ha, and the per-string
+weights that everything below ranks drift with them. Fixing the point group is what makes
+these panels reproducible rather than merely re-runnable. Run with OMP_NUM_THREADS=1.
+
+Besides the PDFs this writes /w/recovery.dat, the table the paper's Fig. 4 reads. Until
+2026-09-11 the S-CORE numbers were computed here and thrown straight at a bar chart, so the
+deposited recovery.dat had no writer anywhere in the repo and could not be checked."""
 import time, numpy as np
 import matplotlib as mpl
 mpl.use("Agg")
@@ -27,7 +37,7 @@ def panel(ax,lab):
 
 # ============================================================ N2 physics (shared)
 R=2.0; NCAS=12; NELECAS=(5,5); na,nb=NELECAS
-mol=gto.M(atom=f"N 0 0 0; N 0 0 {R}",basis="cc-pvdz",verbose=0); mf=scf.RHF(mol).run()
+mol=gto.M(atom=f"N 0 0 0; N 0 0 {R}",basis="cc-pvdz",symmetry=True,verbose=0); mf=scf.RHF(mol).run()
 cas=mcscf.CASCI(mf,NCAS,NELECAS); h1,ecore=cas.get_h1cas(); h2=ao2mo.restore(1,cas.get_h2cas(),NCAS)
 strs_a=cistring.make_strings(range(NCAS),na); dim_a=len(strs_a)
 str_to_idx={int(s):i for i,s in enumerate(strs_a)}
@@ -98,9 +108,9 @@ def s_core(bits):
     return rec,good.mean()
 def rank(c): return [i for i,_ in sorted(c.items(),key=lambda kv:-kv[1])]
 
-scales=[0.0,1.0,2.0,3.0]; D=120; lost=[]; eraw=[]; erec=[]
+scales=[0.0,1.0,2.0,3.0]; D=120; SHOTS=3000; SEED=0; lost=[]; eraw=[]; erec=[]
 for sc in scales:
-    bits=sample_noisy(3000,sc,0); valid=np.array([int(b.sum())==na for b in bits])
+    bits=sample_noisy(SHOTS,sc,SEED); valid=np.array([int(b.sum())==na for b in bits])
     craw={};
     for b in bits[valid]:
         i=str_to_idx[b2s(b)]; craw[i]=craw.get(i,0)+1
@@ -108,6 +118,24 @@ for sc in scales:
     for s in rec:
         i=str_to_idx[s]; crec[i]=crec.get(i,0)+1
     lost.append(100*(1-vf)); eraw.append(err_mHa(rank(craw)[:D]) if craw else np.nan); erec.append(err_mHa(rank(crec)[:D]))
+# --- recovery.dat: the numbers the paper's Fig. 4 plots, with the recipe that made them.
+# Commented with % and not #: pgfplots does not treat # as a comment, it reads the header
+# as data and wrecks the plot without raising anything (from numpy: comments='%').
+with open("/w/recovery.dat","w") as fh:
+    fh.write(
+        f"% N2 {mol.atom} / cc-pVDZ / CASCI({na+nb}e,{NCAS}o) ncore={cas.ncore}\n"
+        f"% gauge: orbitales RHF adaptados por simetria, grupo {mol.groupname}\n"
+        f"% ruido FakeTorino/Heron: lambda_depol={LAMBDA0:g}, p(1->0)={P100:g}, p(0->1)={P010:g},\n"
+        f"%   escalados linealmente por 'scale' y saturados en 0.9/0.5/0.5\n"
+        f"% {SHOTS} tiros por escala, semilla {SEED}; subespacio D={D} cadenas\n"
+        f"% lost = porcentaje de tiros con N_alpha != {na} (ruptura de numero de particulas)\n"
+        f"% eraw = descartar los invalidos;  erec = tras recuperacion S-CORE.  Ambos en mHa\n"
+        f"% E_FCI = {e_fci:.12f} Ha\n"
+        f"% generado por figures/data_figs.py\n")
+    fh.write("scale lost eraw erec\n")
+    for sc,lo,er,ec in zip(scales,lost,eraw,erec):
+        fh.write(f"{sc:.0f} {lo:.2f} {er:.2f} {ec:.2f}\n")
+log("wrote recovery.dat")
 fig,ax=plt.subplots(1,2,figsize=(11.2,4.5))
 ax[0].plot(scales,lost,"o-",color=OI["vermilion"],lw=2.2,ms=9)
 ax[0].fill_between(scales,lost,color=OI["vermilion"],alpha=0.12)
@@ -176,7 +204,7 @@ log("compactness fig done")
 
 # ============================================================ HCI decisive test (H2O, N2)
 def hci_test(atom,ncore,ncas,nelec):
-    m=gto.M(atom=atom,basis="cc-pvdz",verbose=0); f=scf.RHF(m).run()
+    m=gto.M(atom=atom,basis="cc-pvdz",symmetry=True,verbose=0); f=scf.RHF(m).run()
     c=mcscf.CASCI(f,ncas,nelec); c.ncore=ncore
     H1,EC=c.get_h1cas(); H2=ao2mo.restore(1,c.get_h2cas(),ncas)
     a,b=nelec; sA=cistring.make_strings(range(ncas),a); dA=len(sA); hfi=int(np.where(sA==(1<<a)-1)[0][0])
@@ -203,7 +231,12 @@ def hci_test(atom,ncore,ncas,nelec):
     return (ground(A)[0]+EC-eF)*1000
 log("HCI H2O..."); e_h2o=hci_test("O 0 0 0; H 0 0.98 0.76; H 0 -0.98 0.76",1,12,(4,4))
 log("HCI N2...");  e_n2=hci_test("N 0 0 0; N 0 0 2.0",2,12,(5,5))
-mols=["H$_2$O","N$_2$"]; hci=[e_h2o,e_n2]; gfnv=[2.1,26.7]
+# gfnv se LEE del deposito: antes estaba escrito a mano y ningun script lo producia.
+import json as _json, os as _os
+_g = _json.load(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), _os.pardir,
+                                   "results", "gfn_ruidoso_fig7.json"), encoding="utf-8"))
+mols=["H$_2$O","N$_2$"]; hci=[e_h2o,e_n2]
+gfnv=[_g["mols"]["h2o"]["gflownet"]["mean"], _g["mols"]["n2"]["gflownet"]["mean"]]
 fig,ax=plt.subplots(figsize=(6.6,4.8)); x=np.arange(len(mols)); w=0.32
 b1=ax.bar(x-w/2,hci,w,color=OI["vermilion"],label="heat-bath CI (classical, noise-free)",edgecolor="white")
 b2=ax.bar(x+w/2,gfnv,w,color=OI["purple"],label="GFlowNet-SQD (quantum-sampled, noisy)",edgecolor="white")

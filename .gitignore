@@ -12,3 +12,14 @@ __pycache__/
 *.synctex.gz
 .DS_Store
 Thumbs.db
+
+# respaldos de edicion: NUNCA publicar, son un archivo difeable de cada numero
+# equivocado que el paper imprimio jamas
+*.antes_*
+*.bak_*
+*.canonico_previo
+*.previo
+
+# figuras que el notebook escribe al vuelo: ya van embebidas dentro del .ipynb,
+# publicarlas sueltas en la raiz duplica el contenido y ensucia el arbol
+nb_fig*.png

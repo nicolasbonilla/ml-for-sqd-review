@@ -4,6 +4,26 @@ For R in {1.10 (near-eq), 2.00 (paper), 2.50 (stretched)}:
   (1) FCI natural-orbital occupation numbers (NOONs) of the active space -> multireference metric.
   (2) Spearman rank correlation between the cheap Epstein-Nesbet prior and exact |c|^2
       -> the paper's proposed order parameter, measured vs geometry.
+
+GAUGE (see gauge_study/). mol.symmetry=True fixes the orbital gauge. Without it the
+canonical RHF orbitals are free to rotate inside the degenerate pi shells: identical code
+returns different orientations at the same energy to 1e-13 Ha, and rho -- which ranks
+per-string weights -- moves with the orientation, so the order parameter would not be a
+property of the molecule but of the run. Run with OMP_NUM_THREADS=1.
+
+REWARD THRESHOLD. rho is measured with cheap-reward entries below RHO_FLOOR*max set to
+zero. Those entries are algebraically zero by the Slater-Condon rules (the triple-and-higher
+alpha-strings). Brillouin's theorem does NOT dispose of them at the alpha-string level,
+because the reward marginalises over beta: a singly excited alpha-string still carries the
+(alpha-single x beta-single) doubles. What survives in the sub-threshold entries is
+cancellation residue down to ~1e-42, and Spearman ranks that residue above the exact zeros,
+which reads rho high by 0.085 on average across gauges and gives it a spurious gauge spread
+of 0.063 (with the cut: 0.034). Measured in gauge_study/rho_sensibilidad.py.
+
+The cut is not a tunable knob because the spectrum is bimodal: the genuine entries begin at
+1.2e-12 of the maximum and the residue tops out around 1e-34. It is not literally an empty
+band either -- in the worst of 41 gauges two of the 792 entries land between 1e-16 and
+1e-12 -- and we say so rather than claiming an emptiness the measurement does not show.
 """
 import json, numpy as np
 import pyscf
@@ -13,10 +33,11 @@ from scipy.stats import spearmanr
 
 NCAS, NELECAS = 12, (5, 5)
 HA2EV = 27.211386
+RHO_FLOOR = 1e-12          # relative cut on the cheap reward before ranking; see module docstring
 out = {"NCAS": NCAS, "NELECAS": list(NELECAS), "geoms": {}}
 
 for R in (1.10, 1.40, 1.70, 2.00, 2.30, 2.50):
-    mol = gto.M(atom=f"N 0 0 0; N 0 0 {R}", basis="cc-pvdz", verbose=0)
+    mol = gto.M(atom=f"N 0 0 0; N 0 0 {R}", basis="cc-pvdz", symmetry=True, verbose=0)
     mf = scf.RHF(mol).run()
     cas = mcscf.CASCI(mf, NCAS, NELECAS)
     h1, ecore = cas.get_h1cas(); h2 = ao2mo.restore(1, cas.get_h2cas(), NCAS)
@@ -48,7 +69,13 @@ for R in (1.10, 1.40, 1.70, 2.00, 2.30, 2.50):
     c0_hf = float(civec[hf_idx, hf_idx]); w_hf = c0_hf**2
 
     # ---- order parameter: Spearman(cheap prior, exact |c|^2) over the alpha strings ----
-    rho = float(spearmanr(w_cheap, w_true).correlation)
+    # rank the thresholded prior: below RHO_FLOOR*max the entries are algebraic zeros
+    # holding cancellation residue only, and ranking residue reads rho high by ~0.085
+    w_rank = np.where(w_cheap < RHO_FLOOR * w_cheap.max(), 0.0, w_cheap)
+    rho = float(spearmanr(w_rank, w_true).correlation)
+    n_zeroed = int((w_rank == 0).sum())        # reported in the .dat header, not hardcoded:
+                                               # the count depends on the gauge (it drops as
+                                               # symmetry sparsifies the coupling)
 
     out["geoms"][f"{R:.2f}"] = {
         "R_ang": R, "E_FCI_Ha": float(e_fci),
@@ -63,7 +90,26 @@ for R in (1.10, 1.40, 1.70, 2.00, 2.30, 2.50):
 
 json.dump(out, open("/w/physics_results.json", "w"), indent=1)
 # emit .dat for the native order-parameter figure: R, spearman, sum_frac, 1-w_HF, homo_noon
+# Header commented with % and not #: pgfplots does not honour #, it reads the header as
+# data and wrecks the plot without raising anything (from numpy: comments='%').
 with open("/w/orderparam.dat", "w") as fh:
+    fh.write(
+        "% parametro de orden de N2: rho y marcadores de caracter multirreferencial\n"
+        f"% N2 CAS({sum(NELECAS)}e,{NCAS}o) cc-pVDZ, CASCI sobre orbitales canonicos RHF\n"
+        f"% GAUGE: adaptado por simetria ({mol.groupname}, mol.symmetry=True), OMP_NUM_THREADS=1\n"
+        "% rho = Spearman(recompensa Epstein-Nesbet marginalizada, |c|^2 exacto) sobre las\n"
+        f"%   {dim_a} cadenas alpha, CON las recompensas por debajo de {RHO_FLOOR:g}*max puestas a cero.\n"
+        "%   Sin ese umbral el estadistico rankea residuo de cancelacion (hasta 1e-42) por\n"
+        "%   encima de los ceros algebraicos, lo que sube rho en 0.085 de media y le da una\n"
+        "%   dispersion de gauge de 0.063 (con umbral: 0.034). Ceros algebraicos: 701 de 792\n"
+        "%   -- 546 triples-y-superiores por Slater-Condon mas 155 dobles anuladas por\n"
+        "%   simetria espacial; las 91 restantes son las unicas rankeables. No confundir con\n"
+        f"%   las {n_zeroed} entradas que quedan por debajo de {RHO_FLOOR:g}*max, que es un conteo\n"
+        "%   posterior al umbral (y aqui lleva el valor de la ULTIMA geometria del barrido).\n"
+        "%   El corte no es ajustable porque el espectro es bimodal: la senal empieza en\n"
+        "%   1.2e-12*max y el residuo no pasa de ~1e-34. Medido en\n"
+        "%   gauge_study/rho_sensibilidad.py y figures/cuenta_rankeables.py.\n"
+        "% generado por calculations/compute_physics.py\n")
     fh.write("R spearman sumfrac mrweight homo_noon lumo_noon\n")
     for k in sorted(out["geoms"], key=float):
         g = out["geoms"][k]

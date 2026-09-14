@@ -1,0 +1,66 @@
+{
+ "_nota": "Barras generativas de la Fig. 7. Hasta el 2026-09-14 los valores 2.1 y 26.7 mHa estaban escritos a mano y ningun script del deposito los producia.",
+ "noise": {
+  "P_1to0": 0.0229,
+  "P_0to1": 0.02,
+  "lambda_depol": 0.05,
+  "source": "published FakeTorino medians"
+ },
+ "gauge": "D-infinity-h adaptado por simetria, OMP_NUM_THREADS=1",
+ "mols": {
+  "h2o": {
+   "atom": "O 0 0 0; H 0 0.98 0.76; H 0 -0.98 0.76",
+   "ncas": 12,
+   "nelecas": [
+    4,
+    4
+   ],
+   "D": 120,
+   "shots": 1000,
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "E_FCI_Ha": -76.05512477355833,
+   "lost_pct": 24.719999999999995,
+   "gflownet": {
+    "mean": 3.2237616028879756,
+    "std": 1.2599245377914323
+   },
+   "ibm_cheap": {
+    "mean": 1.7896689257440812,
+    "std": 0.18480837613245527
+   }
+  },
+  "n2": {
+   "atom": "N 0 0 0; N 0 0 2.0",
+   "ncas": 12,
+   "nelecas": [
+    5,
+    5
+   ],
+   "D": 120,
+   "shots": 1000,
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "E_FCI_Ha": -108.80804191484268,
+   "lost_pct": 24.939999999999998,
+   "gflownet": {
+    "mean": 19.057647289250212,
+    "std": 1.6962691118266797
+   },
+   "ibm_cheap": {
+    "mean": 21.50520053527316,
+    "std": 1.5693331756528126
+   }
+  }
+ }
+}

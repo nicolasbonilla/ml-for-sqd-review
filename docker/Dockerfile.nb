@@ -2,3 +2,9 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir numpy scipy matplotlib pyscf nbconvert nbformat ipykernel \
     && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# qiskit is required, not optional. The notebook and five scripts under calculations/ read
+# the Heron readout errors from FakeTorino inside a try/except and fall back to hardcoded
+# medians when the import fails. Without these packages the image still runs to completion
+# and still prints "FakeTorino" in its labels, but the noise model is no longer calibrated
+# -- a wrong answer with no error message, which is the worst kind.
+RUN pip install --no-cache-dir "qiskit>=1.0" "qiskit-ibm-runtime>=0.20"

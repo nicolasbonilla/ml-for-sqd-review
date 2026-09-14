@@ -5,7 +5,11 @@ pyscf>=2.3          # exact FCI, selected-CI, integrals  (Linux/macOS; on Window
 torch>=2.0         # GFlowNet proposer (CPU is sufficient)
 matplotlib>=3.7
 
-# Backend-calibrated local noise models (no hardware / no account needed)
+# Backend-calibrated local noise models (no hardware / no account needed).
+# NOT optional: calculations/{gflownet_realnoise,h2o_crossover,n2_ladder_crossover,
+# noise_sweep,validate_realnoise}.py and the notebook read the readout errors from
+# FakeTorino inside a try/except and fall back to hardcoded medians if the import
+# fails -- silently, so a missing qiskit changes the numbers without an error.
 qiskit>=1.0
 qiskit-ibm-runtime>=0.20   # provides fake_provider.FakeTorino (Heron r1 calibration)
 
@@ -15,5 +19,10 @@ nbformat
 nbconvert
 
 # Optional, only for specific figures:
-#   figures/render_orb.py   -> PyMOL (ray-traced molecular orbitals; see docker/Dockerfile.viz)
-#   figures/render_nc.py    -> a Chromium/rsvg renderer for the SVG landscape panel (Fig. 8)
+#   figures/render_orb.py, figures/render_sg.py -> PyMOL (ray-traced molecular orbitals;
+#                             see docker/Dockerfile.viz)
+#   figures/render_nc.py    -> Playwright + Chromium; rasterises figures/fig1_nc.html and
+#                             fig2_nc.html, the LEGACY SVG builds of Figs. 1-2. It has
+#                             nothing to do with Fig. 8. Needs `playwright install chromium`
+#                             (or the mcr.microsoft.com/playwright/python image).
+# playwright>=1.40

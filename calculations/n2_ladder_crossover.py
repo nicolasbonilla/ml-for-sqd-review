@@ -2,8 +2,30 @@
 Same molecule, same electron count (10e), same active space (12o) and dimension (792 alpha-strings)
 at EVERY point -- only the multireference character (bond length R) varies. This removes the
 molecule/electron/dimension confound of the N2-vs-H2O contrast: it varies ONLY the tuned variable.
-For each R we compute the classical-minus-generative gap at zero and high noise, 5 seeds, and the
-Spearman order parameter rho(R). Expectation: the high-noise gap grows as rho falls (multireference)."""
+For each R we compute the classical-minus-generative gap at zero, device-calibrated and high noise,
+5 seeds, and the Spearman order parameter rho(R). Expectation: the high-noise gap grows as rho
+falls (multireference).
+
+NOISE ARMS. SCALES carries three points: 0x (noiseless control), 1x (the FakeTorino/Heron
+calibration as measured, no amplification) and 3x (amplified). The 1x arm is the one the paper's
+central claim rests on -- it is the only point that says anything about a real device -- and it was
+missing from this script until 2026-09-11, so the gap1/gap1sd/t1 columns of the deposited
+ladder.dat could not be regenerated at all. Do not drop it again to save runtime.
+
+GAUGE (see gauge_study/). mol.symmetry=True is NOT cosmetic. Canonical RHF orbitals are
+under-determined inside the degenerate pi shells, so five runs of identical code return five
+different orientations at the same energy to 1e-13 Ha -- and the string weights, hence rho, hence
+every number below, move with the orientation. Fixing the D-infinity-h gauge is what makes this
+script reproducible. Run with OMP_NUM_THREADS=1.
+
+REWARD THRESHOLD. rho is measured with cheap-reward entries below 1e-12*max set to zero, the
+convention the paper's rho values are quoted in (see paper/orderparam.dat). Without it Spearman
+ranks pure cancellation residue -- values down to 1e-42 that are algebraically zero by
+Slater-Condon (Brillouin does NOT apply at the alpha-string level) -- above the exact zeros, which reads rho high by
+0.085 on average across gauges and gives it a spurious gauge spread of 0.063 (with the
+cut: 0.034; medido en gauge_study/rho_sensibilidad.py). The cut is not a tunable knob
+because the spectrum is bimodal: the signal begins at 1.2e-12 of the maximum and the
+residue tops out near 1e-34."""
 import time, json
 import numpy as np
 import torch, torch.nn as nn
@@ -22,7 +44,15 @@ try:
 except Exception: pass
 
 NCAS,NELECAS=12,(5,5); na,nb=NELECAS
-GEOMS=[1.10,1.70,2.00,2.50]; SCALES=[0.0,3.0]; SEEDS=[0,1,2,3,4]; ITERS=800; D=120; BETA_T=0.5; SHOTS=1000
+GEOMS=[1.10,1.70,2.00,2.50]; SCALES=[0.0,1.0,3.0]; ITERS=800; D=120; BETA_T=0.5; SHOTS=1000
+# Las semillas se eligen por entorno para que la REPLICA independiente sea regenerable:
+#   SEEDS="0,1,2,3,4"  -> results/ladder.dat                       (corrida A, por defecto)
+#   SEEDS="5,6,7,8,9"  -> results/ladder_replicacion_semillas5-9.dat (corrida B)
+# Antes estaban fijas a 0-4, asi que el fichero de replica decia en su cabecera que lo
+# generaba este script y este script no podia generarlo.
+import os as _os
+SEEDS=[int(x) for x in _os.environ.get("SEEDS","0,1,2,3,4").split(",")]
+RHO_FLOOR=1e-12   # relative cut on the cheap reward before ranking; see module docstring
 
 class Policy(nn.Module):
     def __init__(s,n):
@@ -30,7 +60,8 @@ class Policy(nn.Module):
     def forward(s,x): return s.net(x)
 
 def run_geometry(R):
-    mol=gto.M(atom=f"N 0 0 0; N 0 0 {R}",basis="cc-pvdz",verbose=0)
+    # symmetry=True pins the orbital gauge inside the degenerate pi shells (see docstring)
+    mol=gto.M(atom=f"N 0 0 0; N 0 0 {R}",basis="cc-pvdz",symmetry=True,verbose=0)
     mf=scf.RHF(mol).run(); cas=mcscf.CASCI(mf,NCAS,NELECAS)
     h1,ecore=cas.get_h1cas(); h2=ao2mo.restore(1,cas.get_h2cas(),NCAS)
     strs_a=cistring.make_strings(range(NCAS),na); dim_a=len(strs_a)
@@ -46,7 +77,10 @@ def run_geometry(R):
     w_cheap=(c1**2).sum(1); w_cheap/=w_cheap.sum(); cheap_order=np.argsort(w_cheap)[::-1]
     e_fci,cV=pyscf.fci.direct_spin1.FCI().kernel(h1,h2,NCAS,NELECAS,ecore=ecore); cV=cV.reshape(dim_a,dim_a)
     w_true=(cV**2).sum(1); w_true/=w_true.sum(); w_hf=float(cV[hf_idx,hf_idx]**2)
-    rho=float(spearmanr(w_cheap,w_true).correlation)
+    # rank the THRESHOLDED reward: the sub-1e-12*max entries are algebraic zeros carrying
+    # only cancellation residue, and ranking that residue reads rho high by ~0.085
+    w_rank=np.where(w_cheap<RHO_FLOOR*w_cheap.max(),0.0,w_cheap)
+    rho=float(spearmanr(w_rank,w_true).correlation)
     _sci=selected_ci.SelectedCI()
     def E(idxs):
         s=np.asarray(sorted(set(int(strs_a[i]) for i in idxs)),dtype=np.int64)
@@ -111,11 +145,24 @@ def run_geometry(R):
 
 out={"note":"controlled: fixed N2(10e,12o), only geometry varies","GEOMS":GEOMS,"SCALES":SCALES,"SEEDS":SEEDS,"geoms":[]}
 for R in GEOMS: out["geoms"].append(run_geometry(R))
-json.dump(out,open("/w/n2_ladder_crossover.json","w"),indent=1)
-# dat for the figure: R rho w_hf gap0 gap0_sd gap3 gap3_sd
-with open("/w/ladder.dat","w") as fh:
-    fh.write("R rho whf gap0 gap0sd gap3 gap3sd t3\n")
+_suf = "" if SEEDS==[0,1,2,3,4] else "_semillas%d-%d"%(SEEDS[0],SEEDS[-1])
+json.dump(out,open("/w/n2_ladder_crossover%s.json"%_suf,"w"),indent=1)
+# One column block per noise arm: gap, sample sd, and the t statistic of the 5 seeds.
+# Header commented with % because pgfplots does not honour # -- it reads the header as
+# data and wrecks the plot without raising anything (from numpy: comments='%').
+CAB=(
+    "% N2 CAS(10e,12o) cc-pVDZ, escalera de geometrias, {ns} semillas por punto: {sd}\n"
+    "% gap = error(control clasico) - error(propuesta generativa), en mHa; >0 = gana la generativa\n"
+    "% escalas de ruido: 0x, 1x (Heron calibrado) y 3x.  t = media/(sd/sqrt({ns}))\n"
+    "% GAUGE: adaptado por simetria (D-infinity-h, mol.symmetry=True), OMP_NUM_THREADS=1\n"
+    "% rho: recompensa Epstein-Nesbet con entradas < 1e-12*max puestas a cero antes de rankear\n"
+    "% generado por calculations/n2_ladder_crossover.py; sd muestral (ddof=1)\n"
+).format(ns=len(SEEDS), sd=",".join(str(x) for x in SEEDS))
+with open("/w/ladder%s.dat"%_suf,"w") as fh:
+    fh.write(CAB+"R rho whf gap0 gap0sd t0 gap1 gap1sd t1 gap3 gap3sd t3\n")
     for g in out["geoms"]:
-        s0=g["scales"]["0"]; s3=g["scales"]["3"]
-        fh.write(f"{g['R']:.2f} {g['rho']:.4f} {g['w_hf']:.4f} {s0['gap_mean']:.3f} {s0['gap_std']:.3f} {s3['gap_mean']:.3f} {s3['gap_std']:.3f} {s3['t_stat']:.3f}\n")
+        s0,s1,s3=(g["scales"][k] for k in ("0","1","3"))
+        fh.write(f"{g['R']:.2f} {g['rho']:.4f} {g['w_hf']:.4f} "
+                 + " ".join(f"{s['gap_mean']:.3f} {s['gap_std']:.3f} {s['t_stat']:.1f}"
+                            for s in (s0,s1,s3)) + "\n")
 log("WROTE n2_ladder_crossover.json + ladder.dat")

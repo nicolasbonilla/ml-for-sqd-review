@@ -90,8 +90,10 @@ for lab in ("90", "99", "99.9"):
     d = t[lab]
     print(f"  {lab:>4}% : cruce n={d['cross']} -> multiplete completo n={d['complete']}"
           f"  (cum={d['cum_complete']:.5f}, {d['pct_complete']}%)")
-print(f"\n  .dat de entonces: 11 / cum@11=0.90247 (sorteo canonico, ya sustituido)")
-print(f"  gauge D-inf-h : 12 / cum@11=0.90565  <- el fichero actual")
+print("\n  .dat de agosto: 11 / cum@11=0.90247 -- venia de un sorteo CANONICO sin fijar,")
+print("    y ese fichero ya no esta en el deposito: lo sustituyo el del gauge adaptado.")
+print("  fichero actual (results/coupon_cum.dat, gauge D-infinito-h): cruce crudo 11,")
+print("    cum@11=0.90565, y 12 al completar el multiplete pi degenerado.")
 
 # ===========================================================================
 # 2. DEPENDENCIA DE GAUGE  (la hipotesis)

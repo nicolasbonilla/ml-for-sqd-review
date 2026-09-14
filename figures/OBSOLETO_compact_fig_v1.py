@@ -3,7 +3,12 @@
 Este script usa `np.maximum(w_cheap, 1e-12)` como suelo de la recompensa.
 La Figura 6 del paper se hizo con `FLOOR = 1e-3 * w_cheap.max()`, NUEVE
 ORDENES DE MAGNITUD mas alto. Con el suelo de aqui salen ~19.2 mHa donde la
-figura reporta 192, y la conclusion se invierte.
+produccion da 110.8+-11.0 (results/fig6_suelo_1e-03.json).
+
+La diferencia es real, pero NO invierte quien gana: la seccion 4.6 del paper
+barrio tres suelos x cinco semillas y el selector codicioso determinista gana a
+todos los que pueden llenar el subespacio. Una version anterior de esta cabecera
+decia que "la conclusion se invierte", y eso esta retirado.
 
     ---> use `fig6_5seed.py`, que es el generador real. <---
 

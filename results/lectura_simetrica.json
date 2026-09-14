@@ -1,0 +1,145 @@
+{
+ "system": "N2",
+ "R_ang": 2.5,
+ "active": "(10e,12o)",
+ "basis": "cc-pvdz",
+ "gauge": "Dooh symmetry-adapted, OMP_NUM_THREADS=1",
+ "readout": "SYMMETRIC bit flip, p=0.030 per spin-orbital",
+ "shots": 2000,
+ "D": 120,
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4
+ ],
+ "gflownet_iters": 1500,
+ "E_FCI_Ha": -108.78658006325118,
+ "per_seed": [
+  {
+   "lost_pct": 27.6,
+   "raw": {
+    "err_mHa": 29.61108555228975,
+    "dim": 62,
+    "triples_plus": 8,
+    "top60": 42
+   },
+   "ibm": {
+    "err_mHa": 25.224812822344234,
+    "dim": 69,
+    "triples_plus": 10,
+    "top60": 45
+   },
+   "gflownet": {
+    "err_mHa": 48.21402052314738,
+    "dim": 31,
+    "triples_plus": 1,
+    "top60": 25
+   }
+  },
+  {
+   "lost_pct": 27.349999999999998,
+   "raw": {
+    "err_mHa": 31.991873761754164,
+    "dim": 71,
+    "triples_plus": 14,
+    "top60": 41
+   },
+   "ibm": {
+    "err_mHa": 31.858808134899164,
+    "dim": 73,
+    "triples_plus": 15,
+    "top60": 41
+   },
+   "gflownet": {
+    "err_mHa": 47.72681491058961,
+    "dim": 35,
+    "triples_plus": 4,
+    "top60": 27
+   }
+  },
+  {
+   "lost_pct": 27.1,
+   "raw": {
+    "err_mHa": 34.05020897857014,
+    "dim": 69,
+    "triples_plus": 15,
+    "top60": 39
+   },
+   "ibm": {
+    "err_mHa": 29.529840151283793,
+    "dim": 78,
+    "triples_plus": 16,
+    "top60": 42
+   },
+   "gflownet": {
+    "err_mHa": 42.60963862121514,
+    "dim": 45,
+    "triples_plus": 4,
+    "top60": 27
+   }
+  },
+  {
+   "lost_pct": 27.6,
+   "raw": {
+    "err_mHa": 36.124916045181976,
+    "dim": 70,
+    "triples_plus": 16,
+    "top60": 38
+   },
+   "ibm": {
+    "err_mHa": 35.0634223646864,
+    "dim": 77,
+    "triples_plus": 18,
+    "top60": 40
+   },
+   "gflownet": {
+    "err_mHa": 51.11042031647628,
+    "dim": 30,
+    "triples_plus": 3,
+    "top60": 23
+   }
+  },
+  {
+   "lost_pct": 27.249999999999996,
+   "raw": {
+    "err_mHa": 35.93839046598646,
+    "dim": 70,
+    "triples_plus": 16,
+    "top60": 42
+   },
+   "ibm": {
+    "err_mHa": 33.7524253599355,
+    "dim": 74,
+    "triples_plus": 16,
+    "top60": 45
+   },
+   "gflownet": {
+    "err_mHa": 49.69103105203487,
+    "dim": 35,
+    "triples_plus": 4,
+    "top60": 28
+   }
+  }
+ ],
+ "summary": {
+  "raw": {
+   "mean": 33.5432949607565,
+   "std": 2.762579876353223,
+   "n": 5,
+   "t_vs_gflownet": 8.695526066300967
+  },
+  "ibm": {
+   "mean": 31.08586176662982,
+   "std": 3.882721139591136,
+   "n": 5,
+   "t_vs_gflownet": 10.184358210121653
+  },
+  "gflownet": {
+   "mean": 47.87038508469266,
+   "std": 3.2259390533627483,
+   "n": 5
+  }
+ }
+}

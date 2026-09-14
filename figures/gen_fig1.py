@@ -33,9 +33,18 @@ NCAS, NELECAS = 12, (5, 5)
 SHOTS = 3000
 SEMILLA = 0
 
-mol = gto.M(atom="N 0 0 0; N 0 0 2.0", basis="cc-pvdz", verbose=0)
-mf = scf.RHF(mol).run()
-cas = mcscf.CASCI(mf, NCAS, NELECAS)
+# symmetry=True: wf_hist.dat son CUENTAS DE CADENAS, que es exactamente la cantidad
+# que la seccion 2.1 del paper declara dependiente del gauge. Sin fijarlo el fichero
+# solo reproduce por el efecto lateral de correr a un hilo -- los orbitales canonicos
+# salen entonces deterministas, 130.192 grados -- que es una casualidad del entorno y
+# no una receta declarada. wf_occ.dat no se mueve: son ocupaciones del 1-RDM, y dentro
+# de una capa degenerada esas son invariantes en cualquier base de la capa.
+mol = gto.M(atom="N 0 0 0; N 0 0 2.0", basis="cc-pvdz", symmetry=True, verbose=0)
+mf = scf.RHF(mol)
+mf.conv_tol = 1e-12          # MISMAS tolerancias que gen_coupon.py: si no, el E_FCI
+mf.run()                     # de la cabecera discrepa del suyo en ~3e-9 Ha y un
+cas = mcscf.CASCI(mf, NCAS, NELECAS)   # arbitro que audite las cabeceras lo vera,
+cas.fcisolver.conv_tol = 1e-13         # porque el paper afirma invariancia a 4e-13.
 e_fci = cas.kernel()[0]
 print("RHF    E = %.9f Ha" % mf.e_tot)
 print("CASCI  E = %.12f Ha" % e_fci)
@@ -43,11 +52,12 @@ assert abs(e_fci + 108.808041914843) < 1e-7, "la receta no reproduce E_FCI"
 
 ci = np.asarray(cas.ci)
 
-# --- ocupaciones: diagonal del 1-RDM alpha en la base MO canonica del espacio activo
+# --- ocupaciones: diagonal del 1-RDM alpha en la base MO adaptada por simetria
 dm1a, _ = cas.fcisolver.make_rdm1s(ci, NCAS, NELECAS)
 occ = np.diag(dm1a).real
 with open("/w/wf_occ.dat", "w") as f:
-    f.write("%% ocupaciones del espacio activo -- diagonal del 1-RDM alpha, base MO canonica\n")
+    f.write("% ocupaciones del espacio activo -- diagonal del 1-RDM alpha\n")
+    f.write("% GAUGE: orbitales RHF adaptados por simetria (Dooh), OMP_NUM_THREADS=1\n")
     f.write("%% N2 R=2.0A cc-pVDZ CAS(10e,12o) CASCI   E_FCI = %.12f Ha\n" % e_fci)
     f.write("%% generado por gen_fig1.py ; suma = %.6f (= 5 electrones alpha)\n" % occ.sum())
     f.write("orb occ\n")
@@ -63,10 +73,14 @@ w /= w.sum()
 cnt = np.random.default_rng(SEMILLA).multinomial(SHOTS, w)
 top = np.sort(cnt)[::-1][:14]
 with open("/w/wf_hist.dat", "w") as f:
-    f.write("%% cuentas de las 14 cadenas alpha mas muestreadas\n")
+    f.write("% cuentas de las 14 cadenas alpha mas muestreadas\n")
+    f.write("% GAUGE: orbitales RHF adaptados por simetria (Dooh), OMP_NUM_THREADS=1.\n")
+    f.write("%   ESTAS CUENTAS SE MUEVEN CON EL GAUGE -- son cuentas de cadenas, que es\n")
+    f.write("%   la cantidad de la que trata la seccion 2.1. Las ocupaciones de wf_occ.dat\n")
+    f.write("%   no: son del 1-RDM y son invariantes dentro de una capa degenerada.\n")
     f.write("%% muestreo Born de |c_alpha|^2 sobre %d cadenas, %d disparos, semilla %d\n"
             % (na, SHOTS, SEMILLA))
-    f.write("%% generado por gen_fig1.py ; N2 R=2.0A cc-pVDZ CAS(10e,12o)\n")
+    f.write("% generado por gen_fig1.py ; N2 R=2.0A cc-pVDZ CAS(10e,12o)\n")
     f.write("rank count\n")
     for i, x in enumerate(top):
         f.write("%d %d\n" % (i, x))

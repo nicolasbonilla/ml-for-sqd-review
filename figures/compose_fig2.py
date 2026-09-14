@@ -1,6 +1,19 @@
 # -*- coding: utf-8 -*-
 """Compose the journal-grade Figure 2: MO energy-level diagrams (with electron
-occupation) + ray-traced PyMOL orbital/structure panels."""
+occupation) + ray-traced PyMOL orbital/structure panels.
+
+ORBITAL ASSIGNMENT (fixed 2026-09-11). Earlier versions of this file called MO#6
+"3sigma_g (HOMO)" at -10.9 eV. That is wrong: for N2 at R=2.0 A / cc-pVDZ the RHF
+spectrum is MO#4 = A1g (the genuine, NON-degenerate 3sigma_g) at -12.985 eV, and
+MO#5/MO#6 = E1uy/E1ux (the two-fold-degenerate 1pi_u HOMO pair) at -10.899 eV. So
+-10.9 eV is the 1pi_u HOMO and -13.0 eV is 3sigma_g -- which is exactly what the
+paper caption prints. Panel (d) therefore loads o_n2_sg_true.png (rendered by
+render_sg.py from the cube of gen_sg_true.py, MO#4) and NOT the legacy o_n2_sg.png,
+which is a cube of MO#6, i.e. a 1pi_u component wearing a sigma label.
+
+Prerequisites: gen_cubes.py (energies + legacy cubes + .xyz), gen_sg_true.py (the
+MO#4 cube), then render_orb.py and render_sg.py for the PNGs.
+"""
 import numpy as np, matplotlib as mpl
 mpl.use("Agg"); import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -78,11 +91,13 @@ gs=fig.add_gridspec(2,5, width_ratios=[1.05,1.25,1,1,1], height_ratios=[1,1],
                     wspace=0.06, hspace=0.22)
 # ---- Row 1: N2 ----
 img(fig.add_subplot(gs[0,0]), "/w/o_n2_struct.png", r"(a) N$_2$,  $R=2.0\,$Å", "CAS(10e, 12o)")
+# keys are MO indices: 4 = 3sigma_g (A1g), 5/6 = the degenerate 1pi_u HOMO pair
+# (E1uy/E1ux -- label once, on 6, since both sit at the same energy), 7 = 1pi_g* LUMO.
 mo_diagram(fig.add_subplot(gs[0,1]), n2e, 7, 2, 12,
-           {5:r"$1\pi_u$", 6:r"$3\sigma_g$ (HOMO)", 7:r"$1\pi_g^{*}$ (LUMO)", 9:r"$3\sigma_u^{*}$"},
+           {4:r"$3\sigma_g$", 6:r"$1\pi_u$ (HOMO)", 7:r"$1\pi_g^{*}$ (LUMO)", 9:r"$3\sigma_u^{*}$"},
            r"(b) N$_2$ MO levels")
-img(fig.add_subplot(gs[0,2]), "/w/o_n2_pi.png",     r"(c) $1\pi_u$ bonding", f"{ev(n2e,5):+.1f} eV")
-img(fig.add_subplot(gs[0,3]), "/w/o_n2_sg.png",     r"(d) $3\sigma_g$ HOMO",  f"{ev(n2e,6):+.1f} eV")
+img(fig.add_subplot(gs[0,2]), "/w/o_n2_pi.png",      r"(c) $1\pi_u$ HOMO", f"{ev(n2e,5):+.1f} eV")
+img(fig.add_subplot(gs[0,3]), "/w/o_n2_sg_true.png", r"(d) $3\sigma_g$",   f"{ev(n2e,4):+.1f} eV")
 img(fig.add_subplot(gs[0,4]), "/w/o_n2_pistar.png", r"(e) $1\pi_g^{*}$ LUMO", f"{ev(n2e,7):+.1f} eV")
 # ---- Row 2: H2O ----
 img(fig.add_subplot(gs[1,0]), "/w/o_h2o_struct.png", r"(f) H$_2$O", "CAS(8e, 12o)")

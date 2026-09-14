@@ -5,7 +5,9 @@
 # (compact_fig.py) NO la reproduce: usa np.maximum(w_cheap, 1e-12) mientras que
 # la figura se hizo con FLOOR = 1e-3 * w_cheap.max(), nueve ordenes de magnitud
 # mas alto. Con el suelo equivocado el GFlowNet da ~19 mHa a D=120 en vez de
-# ~192 -- pero el barrido de suelos de la v2 muestra que eso NO invierte quien gana.
+# ~110.8 +- 11.0 con el suelo de produccion. El suelo mueve la MAGNITUD, no quien
+# gana: el barrido de abajo lo establece, y el selector codicioso gana a los tres
+# suelos que pueden llenar D=120.
 #
 # El suelo NO es un detalle de implementacion: es el "suelo explorable" que
 # fuerza al muestreador a explorar. Con 546 de las 792 cadenas en recompensa
@@ -13,21 +15,19 @@
 # aplica al nivel de cadena alpha, vease la seccion 7 del paper), el suelo decide
 # cuanta masa reciben esas cadenas y por tanto decide el resultado.
 #
-# Verificado el 2026-09-10 con 3 semillas (pyscf 2.14, torch CPU):
-# EL SUELO DE LA RECOMPENSA. np.maximum(w_cheap, 1e-12) frente a 1e-3 * w_cheap.max()
-# son nueve ordenes de magnitud y mueven el error del GFlowNet a D=120 en mas de un
-# factor dos. NO cambian quien gana: la seccion 4.6 barrio el suelo en vez de elegirlo
-# (tres valores x cinco semillas, ../figures/barrido_suelo.py) y a D=120 el selector
-# codicioso gana a los tres -- 110.8+-11.0 (1e-3), 58.2+-6.6 (1e-6) y ningun valor a
-# 1e-12, contra 46.41 mHa. En todo el barrido el proponente adelanta en una sola celda:
-# D=60 a 1e-12, 51.6 contra 54.6, sin resolver a cinco semillas.
+# CIFRAS DE ESTE SCRIPT. Las de produccion son las que emite el propio script con
+# FLOOR_REL=1e-3 y estan depositadas en ../results/fig6_suelo_1e-03.json:
+#   D=120  greedy 46.41 | gfn 110.8+-11.0 | uniform 492.4 | oracle 16.11+-1.65
+# Son las que imprime la seccion 4.5 del paper.
 #
-# Las cifras de produccion estan en ../results/fig6_suelo_1e-03.json y son las que
-# imprime el paper. Una version anterior de esta cabecera decia que bajar el suelo
-# "invierte la conclusion" y citaba como publicados cinco valores (gfn 192.1+-19.5,
-# greedy 41.3, uniform 498.0+-148.9, oracle 17.0+-1.5, gfn D=30 290.0+-57.2). Se
-# midieron antes de fijar el gauge con symmetry=True, no coinciden con el deposito
-# actual y estan retirados.
+# No confundirlas con la verificacion del 2026-09-10 (3 semillas, gfn D=120 167+-37,
+# greedy 41.37), que se hizo ANTES de fijar el gauge con symmetry=True. Esa corrida
+# rankeaba un subespacio distinto al mismo E_FCI y sus numeros estan retirados; se
+# mencionan solo para que quien los haya leido sepa por que no coinciden.
+#
+# EL SUELO NO PONE NADA A CERO. Se aplica como np.maximum(w_cheap, FLOOR), de modo que
+# las 792 cadenas conservan probabilidad no nula. Que a 1e-12 no se llegue a D=120 es
+# una afirmacion sobre las 5e4 muestras por brazo, no sobre el soporte.
 """Fig 6 compactness with 5-seed error bars (uniform, GFlowNet, oracle stochastic; greedy deterministic).
 
 GAUGE (see gauge_study/). mol.symmetry=True fixes the orbital gauge. The five seeds below are
@@ -86,7 +86,14 @@ class Policy(nn.Module):
         s.net = nn.Sequential(nn.Linear(n,256), nn.ReLU(), nn.Linear(256,256), nn.ReLU(), nn.Linear(256,n))
         s.logZ = nn.Parameter(torch.zeros(1))
     def forward(s, x): return s.net(x)
-FLOOR = 1e-3 * w_cheap.max()          # tempered reward (matches Fig 6: beta=0.5, explorable floor)
+import os
+# BARRIDO DEL SUELO. Un solo ajuste del suelo deja la comparacion sin resolver, asi
+# que se corren tres (1e-3, 1e-6 y 1e-12 del maximo), cinco semillas cada uno, todo lo
+# demas fijo, y se publican los tres. Resultado a D=120: 110.8+-11.0, 58.2+-6.6 y
+# ningun valor, contra 46.41 mHa del selector codicioso determinista. Bajar el suelo
+# mejora al proponente pero no le hace adelantar a esa dimension.
+FLOOR_REL = float(os.environ.get("FLOOR_REL", "1e-3"))
+FLOOR = FLOOR_REL * w_cheap.max()
 w_r = torch.tensor(np.maximum(w_cheap, FLOOR) ** 0.5, dtype=torch.float32)
 
 acc = {m:{"uniform":[], "gflownet":[], "oracle":[]} for m in SIZES}
@@ -127,7 +134,15 @@ for m in SIZES:
     for name in ("uniform","gflownet","oracle"):
         v = acc[m][name]
         if v: res["stats"][m][name] = {"mean": float(np.mean(v)), "std": float(np.std(v, ddof=1) if len(v)>1 else 0.0), "n": len(v)}
-json.dump(res, open("/w/fig6_5seed.json","w"), indent=1)
+# El nombre del fichero sale de la MISMA variable que el suelo, con el mismo valor
+# por defecto: antes esta linea leia os.environ["FLOOR_REL"] sin defecto y lanzaba
+# KeyError despues de entrenar las cinco semillas, tirando la corrida entera.
+# El nombre se normaliza a la forma que el deposito usa (exponente de dos cifras):
+# con la cadena cruda, FLOOR_REL="1e-3" escribia "fig6_suelo_1e-3.json" mientras el
+# fichero depositado es "fig6_suelo_1e-03.json", asi que correr el script como lo
+# documenta el README dejaba una copia al lado en vez de regenerar la buena.
+SALIDA = "/w/results/fig6_suelo_%.0e.json" % FLOOR_REL
+json.dump(res, open(SALIDA, "w"), indent=1)
 log("=== FINAL (mean +/- std over 5 seeds) ===")
 for m in SIZES:
     row=f"D={m:4d}  greedy={det[m]:7.2f}"
@@ -135,4 +150,4 @@ for m in SIZES:
         s=res["stats"][m].get(name)
         row += f"  {name}={s['mean']:7.2f}+/-{s['std']:5.2f}(n{s['n']})" if s else f"  {name}=  --"
     log(row)
-log("WROTE fig6_5seed.json")
+log("WROTE %s" % SALIDA)

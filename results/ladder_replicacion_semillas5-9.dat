@@ -1,0 +1,19 @@
+% N2 CAS(10e,12o) cc-pVDZ, escalera de geometrias, 5 semillas por punto: 5,6,7,8,9
+% CORRIDA B, la replica independiente. La corrida A (semillas 0-4) esta en
+%   results/ladder.dat. Las dos salen del mismo generador; las semillas se eligen
+%   con la variable de entorno SEEDS.
+% VERIFICADO el 2026-09-14: se reejecuto calculations/n2_ladder_crossover.py con
+%   SEEDS=5,6,7,8,9 y el resultado coincidio con este fichero en las 32 columnas,
+%   diferencia maxima 0,00. (Este bloque de cabecera se anadio entonces: el fichero
+%   se genero el 2026-09-11, antes de que el script aceptara las semillas por
+%   entorno, y su cabecera no decia cuales llevaba.)
+% gap = error(control clasico) - error(propuesta generativa), en mHa; >0 = gana la generativa
+% escalas de ruido: 0x, 1x (Heron calibrado) y 3x.  t = media/(sd/sqrt(5))
+% GAUGE: adaptado por simetria (D-infinity-h, mol.symmetry=True), OMP_NUM_THREADS=1
+% rho: recompensa Epstein-Nesbet con entradas < 1e-12*max puestas a cero antes de rankear
+% generado por calculations/n2_ladder_crossover.py; sd muestral (ddof=1)
+R rho whf gap0 gap0sd t0 gap1 gap1sd t1 gap3 gap3sd t3
+1.10 0.4723 0.9300 -0.224 0.468 -1.1 -2.472 1.036 -5.3 6.991 4.135 3.8
+1.70 0.4354 0.6396 0.458 2.136 0.5 -0.143 1.918 -0.2 14.320 3.201 10.0
+2.00 0.4144 0.3392 -1.032 0.709 -3.3 0.349 2.054 0.4 12.858 2.713 10.6
+2.50 0.3790 0.1208 -7.858 2.065 -8.5 -1.830 3.530 -1.2 10.978 2.194 11.2

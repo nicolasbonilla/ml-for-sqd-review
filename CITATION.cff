@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this review, please cite the paper below."
-title: "Machine learning for sample-based quantum diagonalization: generative configuration recovery and the classical-simulability frontier"
+title: "Machine learning for sample-based quantum diagonalization: a review of generative configuration recovery and the classical-simulability frontier"
 authors:
   - family-names: "Bonilla Vargas"
     given-names: "Nicolás"
@@ -8,9 +8,9 @@ authors:
     affiliation: "Universidad Nacional de Colombia; SRH University Heidelberg/Munich; Daita AI"
     email: "ngbonillav@unal.edu.co"
 abstract: >-
-  Sample-based quantum diagonalization (SQD), equivalently quantum-selected configuration interaction (QSCI), has in two years become a centre of gravity of pre-fault-tolerant quantum chemistry: a quantum processor samples electronic configurations, and the many-electron Hamiltonian is diagonalized classically in the resulting subspace. Its accuracy is governed entirely by which configurations enter that subspace, a machine-learning selection problem made acute by a coupon-collector bottleneck. We critically review the ecosystem of generative and learned selectors, organizing it by what each generates and the signal it exploits, and expose one gap: a reward-proportional generative-flow-network proposer built for tail discovery. On the field's central question -- whether the quantum sampler beats classical selected CI -- we report a carefully scoped negative: across published same-active-space comparisons, strong classical selected CI matches or beats the quantum-sampled subspace, and flagship single-layer circuits admit polynomial-time classical energy estimation. We distil a benchmarking standard and turn the negative into a regime map, then test it with FCI-exact experiments that confirm one prediction and refute another: the cheap prior's rank correlation with exact weights declines with multireference character, but a controlled noise sweep shows the one generative advantage we find, robustness to valid-shot starvation, to be generic rather than multireference-specific. Applying our own standard to our own result, that advantage does not keep a consistent sign at device-calibrated noise and reverses under a symmetric readout model, so it bounds a regime rather than announcing one. We flag learning from quantum experiments, whose classical sample-complexity lower bound is an unconditional theorem, as the one adjacent frontier where advantage is provable but unbridged to chemistry.
+  Sample-based quantum diagonalization (SQD), equivalently quantum-selected configuration interaction (QSCI), has become a centre of gravity of pre-fault-tolerant quantum chemistry: a quantum processor samples electronic configurations, and the Hamiltonian is diagonalized classically in the resulting subspace. Its accuracy is governed entirely by which configurations enter it -- a machine-learning selection problem, made acute by a coupon-collector bottleneck. We review the ecosystem of generative and learned selectors, organized by what each generates and the signal it exploits, and identify one gap: no reward-proportional generative-flow-network proposer has been built for tail discovery. On the field's central question -- whether the quantum sampler beats classical selected CI -- the negative verdict is not ours to claim: priority belongs to Reinholdt et al. [J. Chem. Theory Comput. 21, 6811 (2025)], and polynomial-time classical energy estimation of the flagship single-layer circuits has since reinforced it. What we add is scope and apparatus. We state that verdict at the precision a falsifiable claim requires -- it concerns reproducible, same-active-space comparisons on molecular electronic structure -- and weigh the live claims outside those qualifiers. We show that alpha-string weights are not invariant under rotations inside degenerate orbital shells, so determinant counts are undefined until the orbital gauge is declared. We distil a ten-element benchmarking standard, apply it to our own deposit, and report the five defects it returned. FCI-exact experiments confirm one prediction and refute another: held to our own standard, the single generative advantage we find keeps no consistent sign at device-calibrated noise and reverses under a symmetric readout model, so it bounds a regime rather than announcing one.
 version: "2.0.0"
-date-released: "2026-09-11"
+date-released: "2026-09-13"
 license: "CC-BY-4.0"
 identifiers:
   - type: other
@@ -26,7 +26,7 @@ keywords:
   - classical simulability
 preferred-citation:
   type: article
-  title: "Machine learning for sample-based quantum diagonalization: generative configuration recovery and the classical-simulability frontier"
+  title: "Machine learning for sample-based quantum diagonalization: a review of generative configuration recovery and the classical-simulability frontier"
   authors:
     - family-names: "Bonilla Vargas"
       given-names: "Nicolás"

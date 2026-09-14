@@ -1,5 +1,6 @@
-% ocupaciones del espacio activo -- diagonal del 1-RDM alpha, base MO canonica
-% N2 R=2.0A cc-pVDZ CAS(10e,12o) CASCI   E_FCI = -108.808041911796 Ha
+% ocupaciones del espacio activo -- diagonal del 1-RDM alpha
+% GAUGE: orbitales RHF adaptados por simetria (Dooh), OMP_NUM_THREADS=1
+% N2 R=2.0A cc-pVDZ CAS(10e,12o) CASCI   E_FCI = -108.808041914842 Ha
 % generado por gen_fig1.py ; suma = 5.000000 (= 5 electrones alpha)
 orb occ
 0 0.9935
