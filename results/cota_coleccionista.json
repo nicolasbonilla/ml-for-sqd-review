@@ -1,0 +1,33 @@
+{
+ "_nota": "Cuanto sobreestima la suma del coleccionista al tiempo real de coleccion. La seccion 3.1 citaba ~2.7x y ~17x sin generador.",
+ "fuente_pesos": "results/coupon_w.dat",
+ "repeticiones": 4000,
+ "semilla": 0,
+ "el_paper_imprime": {
+  "0.900": 2.7,
+  "0.999": 17
+ },
+ "medido": {
+  "0.900": {
+   "n_objetivo": 11,
+   "cota": 351.37,
+   "verdad": 138.27,
+   "sem": 1.27,
+   "cociente": 2.54
+  },
+  "0.990": {
+   "n_objetivo": 46,
+   "cota": 55993.52,
+   "verdad": 9627.99,
+   "sem": 60.97,
+   "cociente": 5.82
+  },
+  "0.999": {
+   "n_objetivo": 185,
+   "cota": 4106060.75,
+   "verdad": 249678.07,
+   "sem": 1255.4,
+   "cociente": 16.45
+  }
+ }
+}

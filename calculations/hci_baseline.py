@@ -1,5 +1,16 @@
 """
-Strong classical baseline: iterative Heat-bath CI (HCI) over single-spin strings.
+Strong classical baseline: iterative EPSTEIN-NESBET selected CI over single-spin strings.
+
+NOMBRE. Este script se llamo 'hci_baseline' y su docstring decia 'Heat-bath CI', y
+ninguna de las dos cosas es exacta: el criterio de seleccion de abajo puntua por
+(H.c)^2/Delta^2, que es Epstein-Nesbet. Lo que define a HCI es el cribado |H_ai c_i|,
+que no esta aqui. El manuscrito siempre lo llamo bien -- 'EN-selected CI, CIPSI-style'
+-- asi que el que estaba mal era el deposito. El nombre del fichero se conserva para
+no romper las rutas que el README y el manuscrito ya citan; el metodo es el de arriba.
+
+Y ES UNA IMPLEMENTACION PROPIA, no un codigo publicado. La seccion 5.1 del paper pide
+que un benchmark nombre el codigo contra el que se corrio; el nuestro no corre contra
+Dice, Quantum Package, block2, ipie ni NECI, sino contra estas ~35 lineas.
 Answers the Reinholdt question: does the quantum+generative approach ever beat a
 strong PURELY CLASSICAL selected-CI at matched subspace dimension (same product
 structure)? HCI bootstraps from the current correlated wavefunction (NOT HF), so it

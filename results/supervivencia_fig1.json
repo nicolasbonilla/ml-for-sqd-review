@@ -1,0 +1,18 @@
+{
+ "_nota": "Las dos fracciones de supervivencia del pie de la Fig. 1. No tenian generador en el deposito hasta el 2026-09-16.",
+ "modelo": {
+  "lambda_depol": 0.05,
+  "p_1to0": 0.0229,
+  "p_0to1": 0.02,
+  "fuente": "medianas publicadas de FakeTorino (Heron r1)"
+ },
+ "shots": 200000,
+ "semilla": 0,
+ "supervivencia_media_12q": 0.7551,
+ "supervivencia_entera_24q": 0.5715,
+ "cuadrado_de_la_media": 0.5702,
+ "el_paper_imprime": {
+  "media_12q": 0.77,
+  "entera_24q": 0.59
+ }
+}

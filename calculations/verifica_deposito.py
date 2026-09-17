@@ -26,7 +26,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, os.pardir))
-TEX = io.open(os.path.join(ROOT, "paper", "main.tex"), encoding="utf-8").read()
+# El espacio en blanco se normaliza a un solo espacio ANTES de buscar. Los patrones de
+# abajo son fragmentos de prosa, y donde caiga un salto de linea en el fuente es una
+# propiedad del fichero, no del documento: reenvolver un pie de figura no debe poder
+# romper una comprobacion. (Paso el 2026-09-17, con dos comprobaciones de la Fig. 10.)
+TEX = re.sub(r"\s+", " ",
+             io.open(os.path.join(ROOT, "paper", "main.tex"), encoding="utf-8").read())
 
 fallos = []
 pasan = 0
@@ -176,6 +181,68 @@ else:
 cw = dat("results/coupon_w.dat")
 comprueba("Sec.3.1 el ancla invariante: el peso mayor",
           r"The largest single-string weight, \$([\d.]+)\$", [max(cw["weight"])], tol=1e-6)
+
+# ------------------------------------------------- la rejilla de dimensiones (5.1)
+# Estas comprobaciones existen porque la frase de la 5.1 se genero LEYENDO este JSON. Si
+# alguien reescribe la frase a mano, o regenera la rejilla y no toca la frase, aqui se cae.
+PALABRA = {2: "two", 3: "three", 6: "six", 8: "eight", 9: "nine", 14: "fourteen"}
+
+rej = jsn("results/rejilla_D.json")
+_n2, _h2o = rej["mols"]["n2"], rej["mols"]["h2o"]
+_banda = _n2["banda_mHa"]
+_cruce = max(_n2["D_entra_en_banda"]["en_ci"], _n2["D_entra_en_banda"]["ranked"])
+_D_max = _n2["filas"][-1]["D"]
+_dA = _n2["n_alpha_strings"]
+_fuera_en = [f for f in _n2["filas"] if f["en_ci_mHa"] > _banda][-1]
+_dentro_en = [f for f in _n2["filas"] if f["en_ci_mHa"] <= _banda][0]
+_fuera_rk = [f for f in _n2["filas"] if f["ranked_mHa"] > _banda][-1]
+_dentro_rk = [f for f in _n2["filas"] if f["ranked_mHa"] <= _banda][0]
+
+
+def literal(etiqueta, cadena):
+    """Para lo que no es un numero: la frase tiene que contener ESTE texto, construido
+    desde el deposito. Un cambio de redaccion que pierda el dato se cae aqui."""
+    global pasan
+    if cadena in TEX:
+        pasan += 1
+        print("  OK  %s" % etiqueta)
+    else:
+        fallos.append((etiqueta, "el manuscrito no contiene: %s" % cadena))
+
+
+comprueba("Sec.5.1 N2 entra en la banda: cruce y los cuatro valores que lo flanquean",
+          r"sweeping the grid out to \$D\{=\}(\d+)\$, both deterministic arms enter the "
+          r"\$([\d.]+)\$~mHa band at \$D\{=\}(\d+)\$ --- the iterative selector passing from "
+          r"\$([\d.]+)\$~mHa at \$D\{=\}(\d+)\$ to \$([\d.]+)\$ at \$(\d+)\$, the exact-weight "
+          r"ranking from \$([\d.]+)\$ to \$([\d.]+)\$",
+          [_D_max, _banda, _cruce,
+           _fuera_en["en_ci_mHa"], _fuera_en["D"], _dentro_en["en_ci_mHa"], _dentro_en["D"],
+           _fuera_rk["ranked_mHa"], _dentro_rk["ranked_mHa"]], tol=0.0006)
+
+comprueba("Sec.5.1 el subespacio del cruce, en cadenas y en determinantes",
+          r"That is \$(\d+)\\%\$ of the \$(\d+)\$ \$\\alpha\$-strings and \$(\d+)\\%\$ of the",
+          [round(100.0 * _cruce / _dA), _dA,
+           round(100.0 * _cruce * _cruce / (_dA * _dA))], tol=0.51)
+
+# el total de determinantes lleva separador de millares de LaTeX: se compara como texto
+literal("Sec.5.1 el total de determinantes",
+        "$%s$ determinants" % "{:,}".format(_dA * _dA).replace(",", "\\,"))
+
+literal("Sec.5.1 la cuenta de puntos de la rejilla",
+        "over %s points in two molecules" % PALABRA.get(len(_n2["filas"]) + len(_h2o["filas"]), "?"))
+
+# y que el "all eight" sea verdad: el selector tiene que ganar en TODOS los puntos de N2
+_gana_n2 = sum(1 for f in _n2["filas"] if f["en_ci_mHa"] < f["ranked_mHa"])
+literal("Sec.5.1 el selector gana en todos los puntos de N2",
+        (r"at \emph{all %s} N$_2$ dimensions" % PALABRA.get(len(_n2["filas"]), "?"))
+        if _gana_n2 == len(_n2["filas"])
+        else "LA REJILLA YA NO DA UN BARRIDO COMPLETO -- reescriba la frase de la 5.1")
+
+_gana_h2o = sum(1 for f in _h2o["filas"] if f["en_ci_mHa"] < f["ranked_mHa"])
+literal("Sec.5.1 la cuenta de H2O",
+        "at only %s of %s on H$_2$O" % (PALABRA.get(_gana_h2o, "?"),
+                                        PALABRA.get(len(_h2o["filas"]), "?")))
+
 
 # --------------------------------------------------------------- la recuperacion
 rec = dat("results/recovery.dat")

@@ -1,0 +1,87 @@
+{
+ "_nota": "El control que la Fig. 6 necesita para ser comparacion igual a igual: muestreo i.i.d. proporcional a la MISMA recompensa que entrena al GFlowNet, y a los pesos exactos. Cinco semillas. Sin torch.",
+ "gauge": "D-infinity-h adaptado por simetria, OMP_NUM_THREADS=1",
+ "n_draws_por_brazo": 50000,
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4
+ ],
+ "E_FCI_Ha": -108.80804191484268,
+ "arms": {
+  "iid_cheap": {
+   "30": {
+    "mean": 71.75150846275358,
+    "std": 3.1820268081492076,
+    "n": 5
+   },
+   "60": null,
+   "120": null,
+   "240": null
+  },
+  "iid_exact": {
+   "30": {
+    "mean": 56.389806677844945,
+    "std": 4.386555007502747,
+    "n": 5
+   },
+   "60": {
+    "mean": 31.49465305910155,
+    "std": 2.3736547113841246,
+    "n": 5
+   },
+   "120": {
+    "mean": 15.688381300793708,
+    "std": 1.5204497435991424,
+    "n": 5
+   },
+   "240": null
+  },
+  "ranked_cheap": {
+   "30": {
+    "mean": 65.53560497242472,
+    "std": 0.0,
+    "n": 1
+   },
+   "60": {
+    "mean": 54.575678008291106,
+    "std": 0.0,
+    "n": 1
+   },
+   "120": {
+    "mean": 46.41066105693881,
+    "std": 0.0,
+    "n": 1
+   },
+   "240": {
+    "mean": 45.4472058640647,
+    "std": 0.0,
+    "n": 1
+   }
+  },
+  "ranked_exact": {
+   "30": {
+    "mean": 47.24208303802868,
+    "std": 0.0,
+    "n": 1
+   },
+   "60": {
+    "mean": 23.68083437126245,
+    "std": 0.0,
+    "n": 1
+   },
+   "120": {
+    "mean": 9.706258934272682,
+    "std": 0.0,
+    "n": 1
+   },
+   "240": {
+    "mean": 2.5558611858258473,
+    "std": 0.0,
+    "n": 1
+   }
+  }
+ }
+}

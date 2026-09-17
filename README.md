@@ -230,7 +230,7 @@ string count moves from 10 to 450.
 
 ## Beyond the figures: what else the paper's claims rest on
 
-Nine claims in the manuscript are not figure data and would otherwise have no generator.
+Fourteen claims in the manuscript are not figure data and would otherwise have no generator.
 They do now.
 
 | claim | § | produced by |
@@ -243,6 +243,11 @@ They do now.
 | How much the threshold and the orbital gauge each move ρ | 7 | [`gauge_study/rho_sensibilidad.py`](gauge_study/rho_sensibilidad.py) |
 | The orbit counts, the invariant fraction, and the count spread under rotation | 3.1 | [`gauge_study/bloque_conteos.py`](gauge_study/bloque_conteos.py) |
 | The symmetric-readout control that reverses the ordering | 7 | [`calculations/lectura_simetrica.py`](calculations/lectura_simetrica.py) → `results/lectura_simetrica.json` |
+| The dimension at which N₂ enters the 1.3 mHa band, and the selector-vs-ranking sweep over fourteen points | 5.1 | [`calculations/rejilla_D.py`](calculations/rejilla_D.py) → `results/rejilla_D.json` |
+| The like-for-like control: sampling a reward costs more than ranking it | 4.6 | [`figures/control_iid.py`](figures/control_iid.py) → `results/control_iid.json` |
+| How far the coupon-collector bound overstates the true collection cost (2.5×, 5.8×, 16×) | 3.1 | [`calculations/cota_coleccionista.py`](calculations/cota_coleccionista.py) → `results/cota_coleccionista.json` |
+| The 12-qubit and 24-qubit shot-survival fractions of Fig. 1 | 2.1 | [`calculations/supervivencia_fig1.py`](calculations/supervivencia_fig1.py) → `results/supervivencia_fig1.json` |
+| **That the abstract says the same thing in all four places it lives, and fits arXiv's 1920-character limit** | — | [`calculations/sincro_resumen.py`](calculations/sincro_resumen.py) |
 | **That every number above still matches what the paper prints** | 6 | [`calculations/verifica_deposito.py`](calculations/verifica_deposito.py) |
 
 ## What is *not* here
@@ -276,6 +281,8 @@ Being explicit, so nothing here promises more than it delivers:
 
 ```
 paper/          main.tex (the live manuscript), main.pdf, its .dat files, arXiv package
+                resync_arxiv.py rebuilds that package from main.tex, compiles the
+                EXTRACTED zip (not the working directory), and refreshes main.pdf
 figures/        generators of figure data
 calculations/   the physics behind the reported numbers
 gauge_study/    the nine scripts establishing gauge dependence
