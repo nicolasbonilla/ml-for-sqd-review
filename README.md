@@ -6,7 +6,7 @@
 **Nicolás Bonilla Vargas** &nbsp;[![ORCID](https://img.shields.io/badge/ORCID-0009--0006--6155--4391-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0006-6155-4391)
 
 [![arXiv](https://img.shields.io/badge/arXiv-2608.05314-b31b1b.svg)](https://arxiv.org/abs/2608.05314)
-[![Paper](https://img.shields.io/badge/paper-PDF%20(39%20pp)-blue.svg)](paper/main.pdf)
+[![Paper](https://img.shields.io/badge/paper-PDF%20(43%20pp)-blue.svg)](paper/main.pdf)
 [![Type](https://img.shields.io/badge/type-review%20%2F%20perspective-8A2BE2.svg)](paper/main.pdf)
 [![Code: MIT](https://img.shields.io/badge/code-MIT-green.svg)](LICENSE)
 [![Text: CC BY 4.0](https://img.shields.io/badge/text-CC--BY--4.0-lightgrey.svg)](LICENSE)
@@ -248,7 +248,7 @@ They do now.
 | How far the coupon-collector bound overstates the true collection cost (2.5×, 5.8×, 16×) | 3.1 | [`calculations/cota_coleccionista.py`](calculations/cota_coleccionista.py) → `results/cota_coleccionista.json` |
 | The 12-qubit and 24-qubit shot-survival fractions of Fig. 1 | 2.1 | [`calculations/supervivencia_fig1.py`](calculations/supervivencia_fig1.py) → `results/supervivencia_fig1.json` |
 | **That the abstract says the same thing in all four places it lives, and fits arXiv's 1920-character limit** | — | [`calculations/sincro_resumen.py`](calculations/sincro_resumen.py) |
-| **That every number above still matches what the paper prints** | 6 | [`calculations/verifica_deposito.py`](calculations/verifica_deposito.py) |
+| **That the checked subset of the numbers above still matches what the paper prints** | 6 | [`calculations/verifica_deposito.py`](calculations/verifica_deposito.py) |
 
 ## What is *not* here
 

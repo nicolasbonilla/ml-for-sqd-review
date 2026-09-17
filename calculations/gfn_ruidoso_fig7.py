@@ -206,11 +206,26 @@ def corre(nombre, S):
         clas.append(a); gen.append(b); perd.append(l)
         log(f"   seed {sd}: ibm+cheap {a:6.2f}   gflownet {b:6.2f} mHa   ({l:.0f}% lost)")
     c, g = np.array(clas), np.array(gen)
+    # Los dos brazos salen de la MISMA llamada a una(sd) y por tanto de los mismos tiros
+    # ruidosos: el emparejamiento por semilla es legitimo por construccion, y sin los pares
+    # depositados el estadistico emparejado que el paper cita no es adjudicable por nadie.
+    dif = c - g                      # positivo = gana el proponente generativo
+    sd_dif = float(dif.std(ddof=1))
+    n = len(dif)
+    t_par = float(dif.mean() * np.sqrt(n) / sd_dif) if sd_dif > 0 else float("inf")
     return {"atom": S["atom"], "ncas": NCAS, "nelecas": list(NELECAS), "D": D,
             "shots": SHOTS, "seeds": SEEDS, "E_FCI_Ha": float(e_fci),
             "lost_pct": float(np.mean(perd)),
-            "gflownet": {"mean": float(g.mean()), "std": float(g.std(ddof=1))},
-            "ibm_cheap": {"mean": float(c.mean()), "std": float(c.std(ddof=1))}}
+            "gflownet": {"mean": float(g.mean()), "std": float(g.std(ddof=1)),
+                         "per_seed": [float(x) for x in g]},
+            "ibm_cheap": {"mean": float(c.mean()), "std": float(c.std(ddof=1)),
+                          "per_seed": [float(x) for x in c]},
+            "pareado": {"_nota": ("diferencia clasico - generativo, semilla a semilla; "
+                                  "positiva = gana el proponente generativo"),
+                        "por_semilla": [float(x) for x in dif],
+                        "media_mHa": float(dif.mean()), "sd_mHa": sd_dif,
+                        "t": t_par, "n": n,
+                        "todas_del_mismo_signo": bool(np.all(dif > 0) or np.all(dif < 0))}}
 
 
 def main():

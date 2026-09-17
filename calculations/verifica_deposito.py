@@ -182,6 +182,127 @@ cw = dat("results/coupon_w.dat")
 comprueba("Sec.3.1 el ancla invariante: el peso mayor",
           r"The largest single-string weight, \$([\d.]+)\$", [max(cw["weight"])], tol=1e-6)
 
+# ------------------------------------------- LA MAQUETA: donde cae de verdad cada figura
+# Todo lo demas en este fichero comprueba CONTENIDO. El 2026-09-17 un pie de figura que
+# crecio empujo las Figuras 7 a 10 detras de la bibliografia sin que nada lo notase: el log
+# no da aviso, y comparar el texto del PDF es ciego a la paginacion porque el texto sigue
+# todo ahi, solo que reubicado. Esta comprobacion mira el PDF como objeto paginado.
+try:
+    import subprocess as _sp
+    _r = _sp.run(["pdftotext", "-enc", "UTF-8", os.path.join(ROOT, "paper", "main.pdf"), "-"],
+                 capture_output=True)
+    _pg = _r.stdout.decode("utf-8", "replace").split("\f")
+    _fig, _bib = {}, None
+    for _i, _p in enumerate(_pg, 1):
+        for _m in re.finditer(r"(?m)^Figure (\d+)\.", _p):
+            _fig.setdefault(int(_m.group(1)), _i)
+        if _bib is None and "\\bibitem" not in _p and "Bytautas" in _p:
+            _bib = _i
+    _n_esperadas = len(re.findall(r"\\label\{fig:", TEX))
+    _problemas = []
+    if len(_fig) != _n_esperadas:
+        _problemas.append("main.tex define %d figuras y el PDF imprime %d"
+                          % (_n_esperadas, len(_fig)))
+    _orden = sorted(_fig, key=lambda k: _fig[k])
+    if _orden != sorted(_orden):
+        _problemas.append("las figuras no salen en orden: %s" % _orden)
+    if _bib:
+        _tarde = [k for k in _fig if _fig[k] > _bib]
+        if _tarde:
+            _problemas.append("las figuras %s salen DESPUES de la bibliografia (pagina %d)"
+                              % (sorted(_tarde), _bib))
+    if _problemas:
+        fallos.append(("PDF la maqueta de las figuras", "; ".join(_problemas)))
+    else:
+        pasan += 1
+        print("  OK  PDF     las %d figuras salen en orden y antes de la bibliografia" % len(_fig))
+except Exception as _e:
+    fallos.append(("PDF la maqueta de las figuras", "no pude comprobarla: %s" % _e))
+
+
+# --------------------------------------- el badge del README contra el PDF depositado
+# Hoy decia 39 con 43 paginas y, una hora despues, 43 con 44. Es lo primero que ve quien
+# abre el repositorio. Se cuentan las paginas del PDF y no del .log, porque el .log esta
+# en .gitignore y un verificador no puede depender de lo que el repositorio no lleva.
+try:
+    _pdf = io.open(os.path.join(ROOT, "paper", "main.pdf"), "rb").read()
+    _pags = _pdf.count(b"/Type /Page") - _pdf.count(b"/Type /Pages")
+    _rd = io.open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
+    _m = re.search(r"paper-PDF%20\((\d+)%20pp\)", _rd)
+    if _m is None:
+        fallos.append(("README el badge de paginas", "no encuentro el badge en README.md"))
+    elif int(_m.group(1)) != _pags:
+        fallos.append(("README el badge de paginas",
+                       "el badge dice %s y el PDF depositado tiene %d" % (_m.group(1), _pags)))
+    else:
+        pasan += 1
+        print("  OK  README  el badge de paginas coincide con el PDF (%d)" % _pags)
+except Exception as _e:
+    fallos.append(("README el badge de paginas", "no pude contarlas: %s" % _e))
+
+
+# ------------------------------------- el estadistico emparejado de la Fig. 7 (7 y pie)
+# El "1.5 sigma" que estas dos frases llevaban sobrevivio meses porque nada lo comparaba
+# con nada: el deposito no guardaba los pares, asi que el numero no era adjudicable ni por
+# el autor. Ahora si, y esto lo exige.
+import math as _math
+
+fig7 = jsn("results/gfn_ruidoso_fig7.json")["mols"]["n2"]
+_par = fig7["pareado"]
+
+comprueba("Fig.7   el pie imprime el estadistico emparejado depositado",
+          r"the difference is \$([\d.]+)\\pm([\d.]+)\$~mHa, \$t_\{(\d)\}\{=\}([\d.]+)\$",
+          [_par["media_mHa"], _par["sd_mHa"], _par["n"] - 1, _par["t"]], tol=0.051)
+
+comprueba("Sec.7   el mismo estadistico en la prosa",
+          r"paired seed by seed, \$([\d.]+)\\pm([\d.]+)\$~mHa and \$t_\{(\d)\}\{=\}([\d.]+)\$",
+          [_par["media_mHa"], _par["sd_mHa"], _par["n"] - 1, _par["t"]], tol=0.051)
+
+# La cota que habria cazado el 1.5 sin tener los pares: sd(X-Y) <= sd(X)+sd(Y), luego
+# t >= d*sqrt(n)/(sg+si). Un t impreso por debajo de eso es imposible, se mire como se mire.
+_cota = (_par["media_mHa"] * _math.sqrt(_par["n"])
+         / (fig7["gflownet"]["std"] + fig7["ibm_cheap"]["std"]))
+_impreso = impreso(r"paired seed by seed, \$[\d.]+\\pm[\d.]+\$~mHa and \$t_\{\d\}\{=\}([\d.]+)\$",
+                   "Sec.7 la cota del t emparejado")
+if _impreso is not None:
+    if _impreso[0] + 0.05 < _cota:
+        fallos.append(("Sec.7 la cota del t emparejado",
+                       "el paper imprime t=%.2f y la desigualdad triangular exige t>=%.3f: "
+                       "imposible" % (_impreso[0], _cota)))
+    else:
+        pasan += 1
+        print("  OK  Sec.7   el t impreso (%.1f) respeta la cota triangular (%.3f)"
+              % (_impreso[0], _cota))
+
+
+# ----------------------------------- las fracciones de supervivencia (Fig. 1, 2.1, 3.2)
+# Viven en TRES sitios: el nodo TikZ de la figura de apertura, la prosa de la 2.1 y la de
+# la 3.2. Durante semanas la 6 declaro los valores corregidos mientras los otros dos
+# imprimian los viejos. Se comprueban por separado, porque un verificador no ve omisiones:
+# solo ve lo que se le enseno a mirar.
+sup = jsn("results/supervivencia_fig1.json")
+_s12 = round(100 * sup["supervivencia_media_12q"])
+_s24 = round(100 * sup["supervivencia_entera_24q"])
+
+comprueba("Fig.1  el nodo TikZ de la figura de apertura",
+          r"\$\\sim\$(\d+)\\% valid \(\$\\alpha\$ half\)", [_s12], tol=0.01)
+
+comprueba("Sec.2.1 las dos fracciones en la prosa",
+          r"here \$(\d+)\\%\$ of shots survive particle-number post-selection.{0,120}?"
+          r"and \$(\d+)\\%\$ across the full",
+          [_s12, _s24], tol=0.01)
+
+comprueba("Sec.3.2 las dos fracciones en la prosa",
+          r"retains \$\{\\sim\}(\d+)\\%\$ of shots at \$1\\times\$ Heron noise.{0,140}?"
+          r"and \$\{\\sim\}(\d+)\\%\$ across the full",
+          [_s12, _s24], tol=0.01)
+
+# y que la 6 siga declarando la correccion con los mismos numeros
+comprueba("Sec.6   la correccion declarada usa los valores medidos",
+          r"measured, they are \$(\d+)\\%\$ and \$(\d+)\\%\$ rather than",
+          [_s12, _s24], tol=0.01)
+
+
 # ------------------------------------------------- la rejilla de dimensiones (5.1)
 # Estas comprobaciones existen porque la frase de la 5.1 se genero LEYENDO este JSON. Si
 # alguien reescribe la frase a mano, o regenera la rejilla y no toca la frase, aqui se cae.

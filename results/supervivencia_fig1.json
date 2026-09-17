@@ -12,7 +12,8 @@
  "supervivencia_entera_24q": 0.5715,
  "cuadrado_de_la_media": 0.5702,
  "el_paper_imprime": {
-  "media_12q": 0.77,
-  "entera_24q": 0.59
+  "media_12q": 0.76,
+  "entera_24q": 0.57,
+  "_nota": "derivado de lo medido; el manuscrito imprime estos dos valores en la Fig. 1, la 2.1 y la 3.2 desde el 2026-09-17"
  }
 }
