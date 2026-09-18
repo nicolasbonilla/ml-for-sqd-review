@@ -8,6 +8,7 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2608.05314-b31b1b.svg)](https://arxiv.org/abs/2608.05314)
 [![Paper](https://img.shields.io/badge/paper-PDF%20(41%20pp)-blue.svg)](paper/main.pdf)
 [![Type](https://img.shields.io/badge/type-review%20%2F%20perspective-8A2BE2.svg)](paper/main.pdf)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22827270.svg)](https://doi.org/10.5281/zenodo.22827270)
 [![Code: MIT](https://img.shields.io/badge/code-MIT-green.svg)](LICENSE)
 [![Text: CC BY 4.0](https://img.shields.io/badge/text-CC--BY--4.0-lightgrey.svg)](LICENSE)
 
