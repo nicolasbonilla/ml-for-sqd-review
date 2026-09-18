@@ -31,6 +31,23 @@ for m in re.finditer(r"\\includegraphics[^{]*\{([^}]+)\}", tex):
     b = os.path.basename(m.group(1))
     leidos.add(b if os.path.isfile(os.path.join(PAPER, b)) else b + ".pdf")
 
+# La CLASE va dentro del paquete. main.tex ya no usa 'article' -- que todo sistema TeX
+# trae -- sino una clase de CTAN, y si el TeX Live de arXiv no la tuviera, o tuviera otra
+# version, el envio fallaria o saldria distinto, y eso no se descubre hasta despues de
+# subirlo. LaTeX busca primero en el directorio del documento, asi que la del paquete gana.
+# El nombre se deriva del \documentclass, no se escribe a mano.
+m_cls = re.search(r"\\documentclass(?:\[[^\]]*\])?\{([\w-]+)\}", tex)
+if m_cls and m_cls.group(1) != "article":
+    cls = m_cls.group(1) + ".cls"
+    if not os.path.isfile(os.path.join(PAPER, cls)):
+        r = subprocess.run(["kpsewhich", cls], capture_output=True, text=True)
+        if r.stdout.strip():
+            shutil.copy2(r.stdout.strip(), os.path.join(PAPER, cls))
+            print("  copiada %s al directorio del paper" % cls)
+        else:
+            print("  AVISO: no encuentro %s; el paquete puede no compilar en arXiv" % cls)
+    leidos.add(cls)
+
 miembros = sorted(x for x in leidos if os.path.isfile(os.path.join(PAPER, x)))
 falta = sorted(x for x in leidos if not os.path.isfile(os.path.join(PAPER, x)))
 print("=" * 70)
