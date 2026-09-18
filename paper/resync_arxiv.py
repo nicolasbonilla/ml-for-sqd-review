@@ -57,7 +57,16 @@ for _ in range(3):
 log = io.open(os.path.join(d, "main.log"), encoding="utf-8", errors="replace").read()
 err = [l for l in log.split("\n") if l.startswith("!")]
 pags = re.search(r"Output written.*?\((\d+) pages", log)
-undef = "undefined" in log.lower()
+# La forma CONCRETA de una referencia rota, no la palabra "undefined" suelta: el
+# 2026-09-18 un aviso de fuente ("Font shape `T1/cmr/b/it' undefined", sustituida por bx,
+# que es la negrita cursiva correcta de Computer Modern) hizo que este script se negara a
+# desplegar un paquete que compilaba perfecto. El mismo fallo estaba en verifica_edicion.py.
+rotas = re.findall(r"(?:Reference|Citation) `[^']*' on page \d+ undefined", log)
+rotas += re.findall(r"There were undefined (?:references|citations)", log)
+fuentes = re.findall(r"Font shape `[^']*' undefined", log)
+if fuentes:
+    print("  avisos de fuente (no bloquean): %d -- %s" % (len(fuentes), fuentes[0]))
+undef = bool(rotas)
 over = log.count("Overfull")
 print("  paginas: %s | errores: %d | undefined: %s | overfull: %d"
       % (pags.group(1) if pags else "?", len(err), undef, over))
