@@ -1,4 +1,8 @@
 \documentclass[11pt]{article}
+% arXiv compila con latex y no pdflatex si falta esto, y entonces los \href de la
+% bibliografia que se parten entre lineas dejan de funcionar. Lo recomienda arXiv
+% (arxiv.org/help/submit_tex) y la clase quantumarticle lo hace obligatorio.
+\pdfoutput=1
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
